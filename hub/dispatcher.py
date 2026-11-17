@@ -25,8 +25,8 @@ class WorkResult:
 class Dispatcher:
     """Dispatch queued work to registered workers; hold outputs for QA.
 
-    Approval pairs are volatile and suitable for tests only. Production external
-    operations require durable, authenticated, per-action approval records.
+    External actions are disabled entirely until a durable, authenticated,
+    per-action approval ledger and safe outbound connector are implemented.
     """
     def __init__(self, store, *, workers: dict[str, Callable], approvals=None):
         self.store = store
@@ -37,7 +37,7 @@ class Dispatcher:
         task = self.store.get(task_id)
         if task["state"] != "queued":
             raise ValueError("task must be queued")
-        if action in EXTERNAL_ACTIONS and (task_id, action) not in self.approvals:
+        if action in EXTERNAL_ACTIONS:
             self.store.transition(task_id, "awaiting_approval", actor="dispatcher",
                                   note=f"approval required: {action}")
             raise ApprovalRequired(f"approval required for {action}")
