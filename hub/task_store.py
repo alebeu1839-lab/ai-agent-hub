@@ -23,7 +23,7 @@ def now():
 
 class TaskStore:
     def __init__(self, path):
-        self.db = sqlite3.connect(str(path), isolation_level=None)
+        self.db = sqlite3.connect(str(path), isolation_level="DEFERRED")
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA busy_timeout=5000")
         self.db.execute("PRAGMA journal_mode=WAL")
