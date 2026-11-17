@@ -55,7 +55,10 @@ class ControlPlane:
         if not project or type(cap) is not int or cap < 0:
             raise ValueError("invalid project budget")
         with self.db:
-            self.db.execute("INSERT INTO project_budgets(project_id,cap) VALUES (?,?) ON CONFLICT(project_id) DO UPDATE SET cap=excluded.cap WHERE spent<=excluded.cap", (project,cap))
+            existing = self.budget(project)
+            if existing and existing["spent"] > cap:
+                raise ValueError("new cap below already spent amount")
+            self.db.execute("INSERT INTO project_budgets(project_id,cap) VALUES (?,?) ON CONFLICT(project_id) DO UPDATE SET cap=excluded.cap", (project,cap))
         return self.budget(project)
 
     # 3. Atomic budget charge
@@ -123,7 +126,8 @@ class ControlPlane:
         at=at or datetime.now(timezone.utc)
         expires=timestamp(at+timedelta(seconds=ttl_seconds))
         with self.db:
-            self.db.execute("DELETE FROM worker_leases WHERE expires<=?",(timestamp(at),))
+            # Expired leases stay reserved until a human or recovery controller
+            # verifies the previous worker cannot still be executing.
             row=self.db.execute("""
                 INSERT INTO worker_leases(task_id,worker,expires)
                 SELECT t.task_id,?,? FROM tasks t WHERE t.task_id=? AND t.state='queued'
