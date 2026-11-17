@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 TRANSITIONS = {
     "created": {"screened", "cancelled"},
     "screened": {"queued", "awaiting_approval", "cancelled"},
-    "queued": {"running", "blocked", "cancelled"},
+    "queued": {"running", "awaiting_approval", "blocked", "cancelled"},
     "running": {"reviewing", "rate_limited", "retry_scheduled", "failed", "blocked"},
     "reviewing": {"completed", "queued", "failed", "blocked"},
     "awaiting_approval": {"queued", "blocked", "cancelled"},
