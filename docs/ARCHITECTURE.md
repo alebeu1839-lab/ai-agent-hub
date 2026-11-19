@@ -46,13 +46,17 @@ flags, a hard timeout, and a JSONL log of every call that the runner puts in the
 
 ## Security model
 
-1. **Who can submit** — only someone who can push to the queue branch. With
-   `security.require_verified_commit=true`, the runner additionally asks the GitHub API
-   (`gh api`) whether the commit that last touched the task file is *GitHub-verified* and
-   authored by a login in `allowed_submitters`. Commits made by the ChatGPT GitHub
-   connector / web UI are signed by GitHub and carry the owner's login; a commit pushed
-   from some other machine with a spoofed e-mail is not verified and is rejected.
-   Fail-closed: if `gh` is missing or the check errors, the task is rejected.
+1. **Who can submit** — only someone who can push to the queue branch (keep the repo
+   private and collaborators minimal). With `security.verify_submitter=true` the runner also
+   asks the GitHub API (`gh api`) for the author login of the commit that last touched the
+   task file and requires it to be in `allowed_submitters`. Fail-closed: if `gh` is missing
+   or the check errors, the task is rejected.
+   *Tested 2026-11-19:* a commit created through the GitHub API (the same path a ChatGPT
+   GitHub connector uses) is attributed to the owner's login but is **unsigned**
+   (`verification.reason = "unsigned"`). Requiring signatures (`require_signed_commit=true`)
+   would therefore reject connector submissions; it is off by default. The login check is
+   not a cryptographic guarantee — anyone with push access can forge an author e-mail —
+   so repository write access is the real trust boundary.
 2. **What can be asked** — tasks are JSON data, never code. Unknown fields are rejected.
    `repo` must be allow-listed, `base_branch` must match the repo's patterns, `mode` must
    be enabled on the runner (`plan` read-only / `implement`), instructions ≤ 8000 chars.

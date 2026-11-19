@@ -33,8 +33,9 @@ The queue runner does **not** need a GitHub Actions self-hosted runner or any op
    python -m hub.admin --config config\hub.config.json submit examples\task.example.json   # or let ChatGPT create it
    .\scripts\windows\start-runner.ps1 -Once
    ```
-   Note: tasks submitted from the PC with plain `git` are **not** GitHub-verified; set
-   `"require_verified_commit": false` for this local smoke test only, or submit via ChatGPT / github.com.
+   Note: the runner checks (via `gh api`) that the commit adding the task was authored by a login in
+   `allowed_submitters`. A local `git` commit only maps to your login if its e-mail is one of your
+   GitHub e-mails; otherwise submit via ChatGPT / github.com, or set `"verify_submitter": false` for this smoke test.
 6. When satisfied, run continuously: `.\scripts\windows\start-runner.ps1`.
    Autostart at logon is optional and gated:
    `.\scripts\windows\register-autostart.ps1 -IUnderstandThisEnablesAutoRun` (only after approval).

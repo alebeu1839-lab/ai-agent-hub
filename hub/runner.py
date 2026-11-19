@@ -48,8 +48,14 @@ def _iso_in(seconds: float) -> str:
     return (datetime.now(timezone.utc) + timedelta(seconds=seconds)).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def gh_verify_submitter(repo_slug: str, sha: str, allowed: list[str]) -> tuple[bool, str]:
-    """Check via the GitHub API that the commit adding a task is verified and authored by an allowed user."""
+def gh_verify_submitter(repo_slug: str, sha: str, allowed: list[str],
+                        require_signed: bool = False) -> tuple[bool, str]:
+    """Ask the GitHub API who authored the commit that submitted a task.
+
+    The author login must be in ``allowed``. Commits made through the GitHub API by
+    connectors (tested: GitHub MCP / app tokens) are *unsigned*, so a signature is only
+    required when ``require_signed`` is set.
+    """
     if not shutil.which("gh"):
         return False, "gh CLI not available to verify submitter (fail closed)"
     proc = subprocess.run(["gh", "api", f"repos/{repo_slug}/commits/{sha}",
@@ -58,11 +64,11 @@ def gh_verify_submitter(repo_slug: str, sha: str, allowed: list[str]) -> tuple[b
     if proc.returncode != 0:
         return False, f"could not query commit {sha[:10]}: {redact(proc.stderr.strip())[:200]}"
     info = json.loads(proc.stdout or "{}")
-    if not info.get("verified"):
-        return False, f"commit {sha[:10]} is not GitHub-verified"
     if info.get("login") not in allowed:
         return False, f"commit author {info.get('login')!r} is not an allowed submitter"
-    return True, f"verified commit by {info.get('login')}"
+    if require_signed and not info.get("verified"):
+        return False, f"commit {sha[:10]} is not signed/verified"
+    return True, f"commit by {info.get('login')} (signed={bool(info.get('verified'))})"
 
 
 def repo_slug_from_url(url: str) -> str | None:
@@ -101,14 +107,15 @@ class Runner:
     # ---------- selection ----------
     def _authorise(self, path: Path) -> tuple[bool, str]:
         sec = self.cfg["security"]
-        if not sec.get("require_verified_commit"):
+        if not sec.get("verify_submitter"):
             return True, "submitter verification disabled in config"
         rel = f"{self.cfg['queue_dir']}/inbox/{path.name}"
         sha = self.queue.last_commit_for(rel)
         slug = repo_slug_from_url(self.cfg["queue_repo_url"])
         if not sha or not slug:
             return False, "cannot determine the commit/repo that submitted this task"
-        return self.verifier(slug, sha, sec.get("allowed_submitters", []))
+        return self.verifier(slug, sha, sec.get("allowed_submitters", []),
+                             require_signed=bool(sec.get("require_signed_commit")))
 
     def pick(self) -> tuple[str, dict] | None:
         """Return (kind, task) where kind is 'resume' or 'new'."""

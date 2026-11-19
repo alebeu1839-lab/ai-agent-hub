@@ -18,7 +18,8 @@
 
   "allowed_modes": ["plan", "implement"],
   "security": {
-    "require_verified_commit": true,
+    "verify_submitter": true,
+    "require_signed_commit": false,
     "allowed_submitters": ["alebeu1839-lab"],
     "max_instruction_chars": 8000
   },

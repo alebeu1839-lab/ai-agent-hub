@@ -55,7 +55,7 @@ class Env:
             "allowed_repos": {"owner/target": {"clone_url": str(self.bare),
                                                "allowed_base_branches": ["main", "feat/*"]}},
             "allowed_modes": ["plan", "implement"],
-            "security": {"require_verified_commit": False, "allowed_submitters": ["owner"],
+            "security": {"verify_submitter": False, "allowed_submitters": ["owner"],
                          "max_instruction_chars": 8000},
             "retry": {"max_attempts": 2, "base_backoff_sec": 60, "max_backoff_sec": 600,
                       "usage_limit_cooldown_sec": 900},
@@ -141,7 +141,7 @@ class RunnerE2E(unittest.TestCase):
             self.assertIn("REJECTED", self.env.read_queue(f"results/{tid}/report.md"))
 
     def test_unverified_submitter_rejected(self):
-        self.env.cfg["security"]["require_verified_commit"] = True
+        self.env.cfg["security"]["verify_submitter"] = True
         self.env.cfg["queue_repo_url"] = str(self.env.bare)  # not github -> cannot verify -> fail closed
         self.env.submit(task("u-001"))
         self.assertEqual(self.runner().run_once(), "idle")
@@ -150,10 +150,10 @@ class RunnerE2E(unittest.TestCase):
     def test_verifier_called_for_github_queue(self):
         calls = []
 
-        def verifier(slug, sha, allowed):
+        def verifier(slug, sha, allowed, require_signed=False):
             calls.append((slug, sha, allowed))
             return False, "commit is not GitHub-verified"
-        self.env.cfg["security"]["require_verified_commit"] = True
+        self.env.cfg["security"]["verify_submitter"] = True
         r = self.runner(verifier)
         r.cfg["queue_repo_url"] = "https://github.com/owner/queue.git"
         r.queue.repo_url = str(self.env.bare)  # transport stays local

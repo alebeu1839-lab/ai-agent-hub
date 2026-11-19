@@ -18,7 +18,8 @@ DEFAULTS = {
     "push_work_branch": True,
     "allowed_modes": ["plan"],
     "security": {
-        "require_verified_commit": True,
+        "verify_submitter": True,
+        "require_signed_commit": False,
         "allowed_submitters": [],
         "max_instruction_chars": 8000,
     },
