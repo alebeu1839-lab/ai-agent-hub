@@ -76,9 +76,8 @@ class PositiveRedactionTest(unittest.TestCase):
             (f"password: {value}", f"password: {R}"),
             (f"passwd={value}", f"passwd={R}"),
             (f"secret = {value}", f"secret = {R}"),
-            # Known cosmetic quirk: the opening quote of a quoted value is
-            # consumed (it sits outside the capture group). Secret is still gone.
-            (f'"token": "{value}"', f'"token": {R}"'),
+            # Quotes around the value are preserved; only the secret is replaced.
+            (f'"token": "{value}"', f'"token": "{R}"'),
         ]
         for text, expected in cases:
             with self.subTest(text):

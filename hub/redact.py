@@ -16,7 +16,7 @@ _PATTERNS = [
     re.compile(r"npm_[A-Za-z0-9]{30,}"),                   # npm tokens
     re.compile(r"xox[baprs]-[A-Za-z0-9\-]{10,}"),          # Slack tokens
     re.compile(r"(?i)(authorization:\s*(?:bearer|token|basic)\s+)[^\s\"']+"),
-    re.compile(r"(?i)((?:api[_-]?key|secret|password|passwd|token)[\"']?\s*[=:]\s*)[\"']?[^\s\"']{6,}"),
+    re.compile(r"(?i)((?:api[_-]?key|secret|password|passwd|token)[\"']?\s*[=:]\s*[\"']?)[^\s\"']{6,}"),
     re.compile(r"[a-z][a-z0-9+.\-]*://[^/\s:@]+:[^/\s@]+@"),  # creds embedded in URLs
 ]
 
