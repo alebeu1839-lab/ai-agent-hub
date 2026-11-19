@@ -1,0 +1,10 @@
+{
+  "id": "20261119-windows-01",
+  "title": "Windows runner verification with real Codex",
+  "instructions": "This is the first run on the owner's Windows PC with a real, logged-in Codex. 1) Ask Codex (codex_test) to run `python -m unittest discover -s tests -t .` in this repository and report the result. 2) Ask Codex (codex_review with paths [\"hub/billing.py\", \"hub/codex_mcp_bridge.py\"]) for Windows-specific risks. 3) Only if a test fails because of a genuine Windows incompatibility, delegate a minimal fix to Codex (codex_implement) and re-run the tests. Otherwise change no files. Report which Codex calls succeeded on Windows.",
+  "repo": "alebeu1839-lab/ai-development-hub",
+  "base_branch": "feat/claude-code-dispatch",
+  "mode": "implement",
+  "requested_by": "chatgpt",
+  "acceptance": ["codex_test ran on Windows", "codex_review returned a verdict", "report lists every Codex call result"]
+}
