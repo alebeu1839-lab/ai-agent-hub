@@ -6,5 +6,18 @@
   "base_branch": "claude/beautiful-bohr-40e17o",
   "mode": "plan",
   "requested_by": "chatgpt-demo",
-  "acceptance": ["codex_review was called", "report has proposals"]
+  "acceptance": [
+    "codex_review was called",
+    "report has proposals"
+  ],
+  "_state": {
+    "authorised": "commit by alebeu1839-lab (signed=False)",
+    "status": "done",
+    "runner": null,
+    "claimed_at": "2026-11-19T00:39:48Z",
+    "updated_at": "2026-11-19T00:40:14Z",
+    "attempts": 1,
+    "session_id": "e84c0aa5-9c17-48ea-b090-5a2f4a238999",
+    "error": null
+  }
 }
