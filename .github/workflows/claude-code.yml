@@ -1,0 +1,39 @@
+name: Claude Code task (manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Development task for Claude Code (no credentials)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  claude:
+    # Only a dedicated Windows machine you control should have this label.
+    runs-on: [self-hosted, Windows, claude-code]
+    timeout-minutes: 45
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check Claude Code availability
+        shell: pwsh
+        run: |
+          if (-not (Get-Command claude -ErrorAction SilentlyContinue)) {
+            throw "Claude Code CLI not installed or not available on this runner."
+          }
+      - name: Run Claude Code in print mode
+        shell: pwsh
+        env:
+          TASK_PROMPT: ${{ inputs.task }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          # Claude uses the runner's own authorized account/settings.
+          # Never use --dangerously-skip-permissions on an unattended runner.
+          claude -p $env:TASK_PROMPT --permission-mode plan
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
