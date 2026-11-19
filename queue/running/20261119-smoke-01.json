@@ -6,5 +6,16 @@
   "base_branch": "feat/claude-code-dispatch",
   "mode": "implement",
   "requested_by": "chatgpt",
-  "acceptance": ["tests/test_redact.py exists and passes", "Codex calls listed in the report"]
+  "acceptance": [
+    "tests/test_redact.py exists and passes",
+    "Codex calls listed in the report"
+  ],
+  "_state": {
+    "authorised": "commit by alebeu1839-lab (signed=False)",
+    "status": "running",
+    "runner": "cloud-smoke",
+    "claimed_at": "2026-11-19T05:29:37Z",
+    "updated_at": "2026-11-19T05:29:37Z",
+    "attempts": 1
+  }
 }
