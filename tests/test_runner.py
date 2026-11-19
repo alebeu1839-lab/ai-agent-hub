@@ -232,6 +232,23 @@ class Units(unittest.TestCase):
         for bad in ("ghp_aaaa", "sk-ant-abcdef", "hunter22", "u:p@"):
             self.assertNotIn(bad, out)
 
+    def test_redact_more_formats(self):
+        samples = ['{"password": "hunter2xx"}', "postgres://user:pw12@db/x",
+                   "-----BEGIN RSA PRIVATE KEY-----\nMIIabc\n-----END RSA PRIVATE KEY-----",
+                   "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abcdefghijklmnop",
+                   "ASIA" + "A" * 16, "sk_live_" + "a" * 20]
+        for smp in samples:
+            self.assertIn("[REDACTED]", redact(smp), smp)
+        self.assertEqual(redact("plain text, no secrets"), "plain text, no secrets")
+
+    def test_bridge_review_paths_confined(self):
+        with tempfile.TemporaryDirectory() as td:
+            os.environ.update({"CODEX_BRIDGE_WORKSPACE": td, "CODEX_BRIDGE_MAX_SANDBOX": "read-only"})
+            r = handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                        "params": {"name": "codex_review", "arguments": {"paths": ["../../etc/passwd"]}}})
+            self.assertTrue(r["result"]["isError"])
+            self.assertIn("outside workspace", r["result"]["content"][0]["text"])
+
     def test_bridge_blocks_write_tools_in_plan_mode(self):
         with tempfile.TemporaryDirectory() as td:
             os.environ.update({"CODEX_BRIDGE_WORKSPACE": td, "CODEX_BRIDGE_MAX_SANDBOX": "read-only"})

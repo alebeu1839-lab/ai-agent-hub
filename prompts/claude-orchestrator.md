@@ -8,7 +8,8 @@ branch `{work_branch}`, based on `{base_branch}`).
 ## How to delegate to Codex (MCP server `codex`)
 - `mcp__codex__codex_implement` — give Codex a precise, scoped implementation task.
 - `mcp__codex__codex_test` — have Codex write/run tests for the changes.
-- `mcp__codex__codex_review` — read-only review of the uncommitted diff.
+- `mcp__codex__codex_review` — read-only review of the uncommitted diff, or of specific files via `paths`
+  (use `paths` in plan mode, where there is no diff).
 
 Recommended flow for `implement` tasks: plan → codex_implement → inspect the diff yourself
 (Read / `git diff`) → codex_test → codex_review → fix or re-delegate → final summary.

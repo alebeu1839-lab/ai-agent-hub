@@ -47,9 +47,12 @@ TOOLS = [
     },
     {
         "name": "codex_review",
-        "description": "Ask Codex for a read-only code review of the uncommitted changes in the workspace.",
+        "description": "Ask Codex for a read-only code review. Reviews the uncommitted changes by default, "
+                       "or the given files when `paths` is set (use this in plan mode, where there is no diff).",
         "inputSchema": {"type": "object", "properties": {
-            "focus": {"type": "string", "description": "Optional review focus."}}},
+            "focus": {"type": "string", "description": "Optional review focus."},
+            "paths": {"type": "array", "items": {"type": "string"},
+                      "description": "Optional workspace-relative files to review instead of the diff."}}},
     },
 ]
 
@@ -122,6 +125,17 @@ def run_codex(tool: str, args: dict) -> tuple[str, bool]:
     if not isinstance(body, str) or len(body) > 20000:
         return "CODEX_ERROR_KIND: input\ninstructions must be a string under 20000 chars", True
     prompt = ROLE_PREFIX[tool] + body
+    paths = args.get("paths") or []
+    if tool == "codex_review" and paths:
+        if not isinstance(paths, list) or len(paths) > 50 or not all(isinstance(x, str) for x in paths):
+            return "CODEX_ERROR_KIND: input\npaths must be a list of at most 50 strings", True
+        root = Path(ws).resolve()
+        for x in paths:
+            if not (root / x).resolve().is_relative_to(root):
+                return f"CODEX_ERROR_KIND: input\npath outside workspace: {x}", True
+        prompt = ("You are the reviewer. Do not modify files. Review these files (not only the diff): "
+                  + ", ".join(paths) + ". List concrete bugs/risks with file:line and severity, then a "
+                  "verdict (APPROVE / REQUEST_CHANGES).\n\nFocus:\n" + body)
 
     codex = os.environ.get("CODEX_BIN", "codex")
     codex = shutil.which(codex) or codex  # Windows: resolve codex.cmd via PATHEXT
