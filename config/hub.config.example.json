@@ -1,0 +1,47 @@
+{
+  "_comment": "Copy to config/hub.config.json (gitignored) and edit. Never put tokens or keys in this file.",
+  "runner_id": "windows-main",
+
+  "queue_repo_url": "https://github.com/alebeu1839-lab/ai-development-hub.git",
+  "queue_branch": "agent-queue",
+  "queue_dir": "queue",
+
+  "allowed_repos": {
+    "alebeu1839-lab/ai-development-hub": {
+      "clone_url": "https://github.com/alebeu1839-lab/ai-development-hub.git",
+      "allowed_base_branches": ["main", "feat/*", "claude/*"]
+    }
+  },
+  "work_branch_prefix": "agent/",
+  "protected_branches": ["main", "master", "production", "release/*", "gh-pages"],
+  "push_work_branch": true,
+
+  "allowed_modes": ["plan", "implement"],
+  "security": {
+    "require_verified_commit": true,
+    "allowed_submitters": ["alebeu1839-lab"],
+    "max_instruction_chars": 8000
+  },
+
+  "claude": {
+    "bin": "claude",
+    "timeout_sec": 2400,
+    "max_budget_usd": 5,
+    "restricted": true,
+    "model": null
+  },
+  "codex": {
+    "bin": "codex",
+    "timeout_sec": 1200,
+    "model": null
+  },
+
+  "retry": {
+    "max_attempts": 3,
+    "base_backoff_sec": 120,
+    "max_backoff_sec": 3600,
+    "usage_limit_cooldown_sec": 1800
+  },
+  "poll_interval_sec": 60,
+  "state_dir": "state"
+}

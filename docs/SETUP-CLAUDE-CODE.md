@@ -1,24 +1,53 @@
-# GPT → Claude Code → Codex: staged setup
+# GPT → Claude Code → Codex: setup
 
-## Current state
-This branch adds a **manual test entry point**, not an always-on connection. Nothing runs until this workflow is merged into a branch GitHub can dispatch, a dedicated Windows runner is online, and Claude Code is installed and authenticated there.
+Architecture and security model: [ARCHITECTURE.md](ARCHITECTURE.md).
+How ChatGPT submits tasks and reads results: [GPT-INSTRUCTIONS.md](GPT-INSTRUCTIONS.md).
 
-## Windows one-time setup (on a dedicated machine)
-1. Install Git, Node.js, Claude Code CLI, and Codex CLI following their official documentation. Sign in to each tool with your own account. Do not store API keys in repository files or issue comments.
-2. GitHub repository → Settings → Actions → Runners → New self-hosted runner. Follow GitHub's Windows installation instructions, then attach the custom label `claude-code`. **Only use this runner for trusted repositories.** Public-repository self-hosted runners must be isolated and tightly controlled; a private dedicated repository is safer.
-3. In PowerShell, verify `claude --version` and `codex --version`. Configure Codex as a Claude Code MCP server on the runner if desired and verify it from the Claude Code session.
-4. Review the workflow and merge it only after the runner is isolated, repository access is restricted, and you approve enabling task execution.
-5. GitHub → Actions → “Claude Code task (manual)” → Run workflow, choose a **non-production branch**, and enter a harmless read-only task, such as “Inspect the repository and propose a test plan; do not edit files.”
+## Two entry points
 
-## Guardrails
-- Workflow is intentionally **plan mode**: it can analyze, but is not authorized to modify files or deploy.
-- It does not run on push, issue, pull request, or on an automatic schedule.
-- It does not export your GitHub token to the CLI or persist checkout credentials.
-- No direct access to My Addness production, Cloudflare, D1, or `main` is granted.
-- Enabling edits, autonomous routing, or a GPT-triggered queue requires a separate reviewed PR, restricted credentials, test gates, and explicit deployment approval.
-- Completion evidence: successful Actions run URL, Claude CLI response, and confirmed runner status.
+| | Queue runner (main path) | Manual workflow (kept from the scaffold) |
+|---|---|---|
+| Trigger | ChatGPT commits `queue/inbox/<id>.json` on `agent-queue` | GitHub → Actions → "Claude Code task (manual)" |
+| Runs on | owner's PC, `python -m hub.runner loop` (outbound git only) | self-hosted runner labelled `claude-code` |
+| Can edit | `implement` tasks, on branch `agent/<id>` only | no (plan mode) |
+| Codex | yes, via `hub/codex_mcp_bridge.py` | not configured |
 
-## Architecture target
-ChatGPT (task planning) → safe task queue / reviewed dispatch → Windows runner → Claude Code → Codex via MCP → GitHub branch / PR → ChatGPT reports results.
+The queue runner does **not** need a GitHub Actions self-hosted runner or any open port.
 
-The present ChatGPT connector can edit GitHub files, but cannot directly start a local Windows process or call Claude Code. Do not report the bridge as live until an actual run succeeds.
+## Windows one-time setup (dedicated or trusted PC)
+
+1. Install Git, Python 3.10+, Node.js, then `npm i -g @anthropic-ai/claude-code @openai/codex`,
+   and GitHub CLI (`winget install GitHub.cli`).
+2. Sign in with **your own accounts** (nothing is stored in this repo):
+   `claude` (log in once interactively), `codex login`, `gh auth login`.
+   Git push uses the same credentials (Git Credential Manager / gh).
+3. Clone this repo on a branch containing `hub/`, then:
+   ```powershell
+   copy config\hub.config.example.json config\hub.config.json   # review allowlists
+   .\scripts\windows\check-runner.ps1
+   ```
+4. Create the queue branch once (pushes a new orphan branch `agent-queue` — owner approval):
+   `python -m hub.admin --config config\hub.config.json init-queue`
+5. Smoke test with a read-only task:
+   ```powershell
+   python -m hub.admin --config config\hub.config.json submit examples\task.example.json   # or let ChatGPT create it
+   .\scripts\windows\start-runner.ps1 -Once
+   ```
+   Note: tasks submitted from the PC with plain `git` are **not** GitHub-verified; set
+   `"require_verified_commit": false` for this local smoke test only, or submit via ChatGPT / github.com.
+6. When satisfied, run continuously: `.\scripts\windows\start-runner.ps1`.
+   Autostart at logon is optional and gated:
+   `.\scripts\windows\register-autostart.ps1 -IUnderstandThisEnablesAutoRun` (only after approval).
+
+## Guardrails (summary)
+- Work only lands on `agent/<id>` branches; `main`/protected branches are refused; nothing is merged automatically.
+- Claude runs `--restricted` with an allowlist; `git push`, `curl`, `gh`, `wrangler`, web access are denied.
+- Codex is sandboxed to the task worktree (`read-only` for plan tasks).
+- Per-run budget cap (`claude.max_budget_usd`), timeouts, retry limit, usage-limit cooldown, `queue/PAUSE` kill switch.
+- My Addness repositories are not in `allowed_repos`; adding a repo is an explicit config change by the owner.
+- If `claude --restricted` is unsupported by your installed version, set `"restricted": false`
+  (falls back to `--setting-sources ""`), or update Claude Code.
+
+## Tests
+`python -m unittest discover -s tests -t .` — end-to-end against local bare git repos with fake
+`claude`/`codex` binaries (the fake Claude still drives the real MCP bridge).
