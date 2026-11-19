@@ -16,6 +16,13 @@ The queue runner does **not** need a GitHub Actions self-hosted runner or any op
 
 ## Windows one-time setup (dedicated or trusted PC)
 
+**Quick path:** paste this into PowerShell (normal user). It does steps 1–5 below and processes one task:
+```powershell
+irm https://raw.githubusercontent.com/alebeu1839-lab/ai-development-hub/feat/claude-code-dispatch/scripts/windows/bootstrap.ps1 | iex
+```
+
+Manual steps:
+
 1. Install Git, Python 3.10+, Node.js, then `npm i -g @anthropic-ai/claude-code @openai/codex`,
    and GitHub CLI (`winget install GitHub.cli`).
 2. Sign in with **your own subscription accounts** (nothing is stored in this repo):

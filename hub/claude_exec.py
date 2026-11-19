@@ -111,7 +111,8 @@ def run_claude(task: dict, workspace: Path, cfg: dict, run_dir: Path,
     ccfg = cfg["claude"]
     claude_bin = os.environ.get("CLAUDE_BIN", ccfg["bin"])
     claude_bin = shutil.which(claude_bin) or claude_bin  # Windows: resolve claude.cmd via PATHEXT
-    cmd = [claude_bin, "-p", "--output-format", "json",
+    prefix = [sys.executable] if claude_bin.endswith(".py") else []  # test fakes on Windows
+    cmd = [*prefix, claude_bin, "-p", "--output-format", "json",
            "--mcp-config", str(mcp_path), "--strict-mcp-config",
            "--settings", str(settings_path),
            "--append-system-prompt-file", str(sys_path),

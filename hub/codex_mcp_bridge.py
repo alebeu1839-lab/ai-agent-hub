@@ -91,7 +91,7 @@ def preflight(codex: str) -> tuple[bool, str]:
     global _PREFLIGHT
     if _PREFLIGHT is None:
         try:
-            p = subprocess.run([codex, "login", "status"], stdin=subprocess.DEVNULL, capture_output=True,
+            p = subprocess.run([*([sys.executable] if codex.endswith(".py") else []), codex, "login", "status"], stdin=subprocess.DEVNULL, capture_output=True,
                                env=subscription_env(),
                                text=True, encoding="utf-8", errors="replace", timeout=30)
             out = (p.stdout + p.stderr).strip()
@@ -159,7 +159,7 @@ def run_codex(tool: str, args: dict) -> tuple[str, bool]:
               "event": "started"})
     with tempfile.TemporaryDirectory() as td:
         last = Path(td) / "last.txt"
-        cmd = [codex, "exec", "--sandbox", want, "--cd", ws, "--color", "never",
+        cmd = [*([sys.executable] if codex.endswith(".py") else []), codex, "exec", "--sandbox", want, "--cd", ws, "--color", "never",
                "--output-last-message", str(last)]
         model = os.environ.get("CODEX_BRIDGE_MODEL")
         if model:

@@ -13,6 +13,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 
 # Env vars that would make a CLI bill an API account instead of the subscription.
 PAID_ENV_VARS = (
@@ -21,6 +22,10 @@ PAID_ENV_VARS = (
     "AZURE_OPENAI_API_KEY",
 )
 DEFAULT_CLAUDE_AUTH = ["oauth_token", "oauth", "claude.ai", "claudeai", "subscription"]
+
+
+def _py(exe: str) -> list[str]:
+    return [sys.executable] if exe.endswith(".py") else []  # test fakes on Windows
 
 
 def subscription_env(base: dict | None = None) -> dict:
@@ -34,7 +39,7 @@ def check_claude(bin_name: str, allowed_methods: list[str] | None = None) -> tup
     allowed = [m.lower() for m in (allowed_methods or DEFAULT_CLAUDE_AUTH)]
     exe = shutil.which(bin_name) or bin_name
     try:
-        p = subprocess.run([exe, "auth", "status", "--json"], capture_output=True, text=True,
+        p = subprocess.run([*_py(exe), exe, "auth", "status", "--json"], capture_output=True, text=True,
                            encoding="utf-8", errors="replace", timeout=60, env=subscription_env(),
                            stdin=subprocess.DEVNULL)
     except (FileNotFoundError, subprocess.TimeoutExpired) as e:
@@ -58,7 +63,7 @@ def check_claude(bin_name: str, allowed_methods: list[str] | None = None) -> tup
 def check_codex(bin_name: str) -> tuple[bool, str]:
     exe = shutil.which(bin_name) or bin_name
     try:
-        p = subprocess.run([exe, "login", "status"], capture_output=True, text=True, encoding="utf-8",
+        p = subprocess.run([*_py(exe), exe, "login", "status"], capture_output=True, text=True, encoding="utf-8",
                            errors="replace", timeout=60, env=subscription_env(), stdin=subprocess.DEVNULL)
     except (FileNotFoundError, subprocess.TimeoutExpired) as e:
         return False, f"codex login status failed: {e}"
