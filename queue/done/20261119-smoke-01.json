@@ -12,10 +12,12 @@
   ],
   "_state": {
     "authorised": "commit by alebeu1839-lab (signed=False)",
-    "status": "running",
-    "runner": "cloud-smoke",
+    "status": "done",
+    "runner": null,
     "claimed_at": "2026-11-19T05:29:37Z",
-    "updated_at": "2026-11-19T05:29:37Z",
-    "attempts": 1
+    "updated_at": "2026-11-19T05:30:43Z",
+    "attempts": 1,
+    "session_id": "ec60a0dd-027a-43b3-a061-334761b99dbb",
+    "error": null
   }
 }

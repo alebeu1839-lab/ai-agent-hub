@@ -1,0 +1,48 @@
+{
+  "id": "20261119-smoke-01",
+  "title": "Smoke test: redact regression tests",
+  "status": "done",
+  "mode": "implement",
+  "repo": "alebeu1839-lab/ai-development-hub",
+  "base_branch": "feat/claude-code-dispatch",
+  "attempt": 1,
+  "error_kind": null,
+  "error": null,
+  "duration_sec": 63.8,
+  "claude": {
+    "ok": true,
+    "exit_code": 0,
+    "session_id": "ec60a0dd-027a-43b3-a061-334761b99dbb",
+    "cost_usd": 0.22801960000000002,
+    "subtype": "success",
+    "num_turns": 7,
+    "duration_ms": 59776,
+    "permission_denials": [],
+    "terminal_reason": "completed"
+  },
+  "codex_calls": [
+    {
+      "ts": "2026-11-19T05:29:56Z",
+      "tool": "codex_implement",
+      "sandbox": "workspace-write",
+      "exit_code": null,
+      "error_kind": "auth",
+      "duration_sec": 0
+    }
+  ],
+  "codex_unfinished_calls": 0,
+  "warnings": [
+    "1 Codex call(s) failed: auth",
+    "no successful Codex call: work was done by Claude alone or not at all"
+  ],
+  "git": {
+    "work_branch": "agent/20261119-smoke-01",
+    "committed": true,
+    "pushed": true,
+    "commits_ahead": 1,
+    "diffstat": "tests/test_redact.py | 132 +++++++++++++++++++++++++++++++++++++++++++++++++++\n 1 file changed, 132 insertions(+)",
+    "head": "f4f946a227343b99eee4dcbed11fa661f5bbda64"
+  },
+  "finished_at": "2026-11-19T05:30:43Z",
+  "runner": "cloud-smoke"
+}
