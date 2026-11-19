@@ -1,0 +1,10 @@
+{
+  "id": "20261119-smoke-01",
+  "title": "Smoke test: redact regression tests",
+  "instructions": "Add tests/test_redact.py with unittest cases: for each pattern in hub/redact.py one positive sample that must become [REDACTED], plus negative samples of ordinary text that must stay unchanged. Delegate writing the tests to Codex (codex_implement), have Codex run them (codex_test), then request codex_review. Run `python3 -m unittest tests.test_redact` yourself to verify. Do not change hub/redact.py unless a test reveals a real bug; if so, describe it.",
+  "repo": "alebeu1839-lab/ai-development-hub",
+  "base_branch": "feat/claude-code-dispatch",
+  "mode": "implement",
+  "requested_by": "chatgpt",
+  "acceptance": ["tests/test_redact.py exists and passes", "Codex calls listed in the report"]
+}
