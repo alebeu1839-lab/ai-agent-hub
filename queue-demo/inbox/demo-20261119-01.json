@@ -1,0 +1,10 @@
+{
+  "id": "demo-20261119-01",
+  "title": "Review redact.py (GitHub round-trip demo)",
+  "instructions": "Read hub/redact.py. Ask Codex for a read-only review via codex_review focusing on missed secret patterns. Then summarise up to 3 concrete improvement proposals. Do not modify files.",
+  "repo": "alebeu1839-lab/ai-development-hub",
+  "base_branch": "claude/beautiful-bohr-40e17o",
+  "mode": "plan",
+  "requested_by": "chatgpt-demo",
+  "acceptance": ["codex_review was called", "report has proposals"]
+}
