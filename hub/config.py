@@ -32,6 +32,11 @@ DEFAULTS = {
         "max_backoff_sec": 3600,
         "usage_limit_cooldown_sec": 1800,
     },
+    "billing": {
+        "subscription_only": True,
+        "claude_allowed_auth_methods": ["oauth_token", "oauth", "claude.ai", "claudeai", "subscription"],
+        "require_codex_subscription": True,
+    },
     "poll_interval_sec": 60,
     "state_dir": "state",
 }

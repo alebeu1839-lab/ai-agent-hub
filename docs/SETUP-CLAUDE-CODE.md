@@ -18,8 +18,11 @@ The queue runner does **not** need a GitHub Actions self-hosted runner or any op
 
 1. Install Git, Python 3.10+, Node.js, then `npm i -g @anthropic-ai/claude-code @openai/codex`,
    and GitHub CLI (`winget install GitHub.cli`).
-2. Sign in with **your own accounts** (nothing is stored in this repo):
-   `claude` (log in once interactively), `codex login`, `gh auth login`.
+2. Sign in with **your own subscription accounts** (nothing is stored in this repo):
+   `claude` → choose the Claude subscription (Pro/Max) login, **not** an API key;
+   `codex login` → "Sign in with ChatGPT", **not** an API key; `gh auth login`.
+   Do not set `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`. Turn **extra usage / overage OFF** in your
+   Claude and ChatGPT account settings. The runner refuses to run otherwise (`blocked: …`).
    Git push uses the same credentials (Git Credential Manager / gh).
 3. Clone this repo on a branch containing `hub/`, then:
    ```powershell

@@ -10,6 +10,8 @@ mode = os.environ.get("FAKE_CODEX_MODE", "ok")
 if args[:2] == ["login", "status"]:
     if mode == "auth":
         print("Not logged in"); sys.exit(1)
+    if mode == "apikey" or "OPENAI_API_KEY" in os.environ:
+        print("Logged in using an API key - sk-proj-***"); sys.exit(0)
     print("Logged in using ChatGPT"); sys.exit(0)
 assert args and args[0] == "exec", args
 def opt(name):
@@ -17,6 +19,7 @@ def opt(name):
 cd, sandbox, last = opt("--cd"), opt("--sandbox"), opt("--output-last-message")
 assert sandbox in ("read-only", "workspace-write"), sandbox
 assert "--dangerously-bypass-approvals-and-sandbox" not in args
+assert "OPENAI_API_KEY" not in os.environ, "API key leaked into codex exec env"
 if mode == "usage_limit":
     print("ERROR: You've hit your usage limit. Try again later.", file=sys.stderr); sys.exit(1)
 if mode == "auth":

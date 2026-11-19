@@ -24,6 +24,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from hub.billing import subscription_env  # noqa: E402
 from hub.redact import redact  # noqa: E402
 
 PROTOCOL_VERSION = "2025-06-18"
@@ -91,9 +92,14 @@ def preflight(codex: str) -> tuple[bool, str]:
     if _PREFLIGHT is None:
         try:
             p = subprocess.run([codex, "login", "status"], stdin=subprocess.DEVNULL, capture_output=True,
+                               env=subscription_env(),
                                text=True, encoding="utf-8", errors="replace", timeout=30)
             out = (p.stdout + p.stderr).strip()
-            _PREFLIGHT = (p.returncode == 0, out[-300:] or f"exit {p.returncode}")
+            subscription = "chatgpt" in out.lower() and "api key" not in out.lower()
+            if p.returncode == 0 and not subscription:
+                _PREFLIGHT = (False, "billing: Codex is not using a ChatGPT login (API key = metered). " + out[-200:])
+            else:
+                _PREFLIGHT = (p.returncode == 0, out[-300:] or f"exit {p.returncode}")
         except FileNotFoundError:
             _PREFLIGHT = (False, f"codex binary not found: {codex}")
         except subprocess.TimeoutExpired:
@@ -142,7 +148,8 @@ def run_codex(tool: str, args: dict) -> tuple[str, bool]:
     timeout = int(os.environ.get("CODEX_BRIDGE_TIMEOUT", "1200"))
     ok, why = preflight(codex)
     if not ok:
-        kind = "auth" if "not logged in" in why.lower() or "login" in why.lower() else "config"
+        kind = ("billing" if why.startswith("billing") else
+                "auth" if "not logged in" in why.lower() or "login" in why.lower() else "config")
         log_call({"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "tool": tool, "sandbox": want,
                   "exit_code": None, "duration_sec": 0, "error_kind": kind,
                   "final_message": "", "stderr_tail": redact(why)})
@@ -160,7 +167,7 @@ def run_codex(tool: str, args: dict) -> tuple[str, bool]:
         cmd.append(prompt)
         started = time.time()
         try:
-            proc = subprocess.run(cmd, cwd=ws, stdin=subprocess.DEVNULL, capture_output=True,
+            proc = subprocess.run(cmd, cwd=ws, stdin=subprocess.DEVNULL, capture_output=True, env=subscription_env(),
                                   text=True, encoding="utf-8", errors="replace", timeout=timeout)
             rc, out, err = proc.returncode, proc.stdout, proc.stderr
         except FileNotFoundError:

@@ -13,7 +13,16 @@ Check "Codex CLI" "codex"
 Check "GitHub CLI (submitter verification)" "gh"
 
 if (Get-Command python -ErrorAction SilentlyContinue) { python --version }
-if (Get-Command claude -ErrorAction SilentlyContinue) { claude --version }
+if (Get-Command claude -ErrorAction SilentlyContinue) {
+  claude --version
+  $auth = claude auth status --json | ConvertFrom-Json
+  Write-Host "Claude auth: $($auth.authMethod) / $($auth.apiProvider)"
+  if ($auth.apiProvider -ne "firstParty" -or $auth.authMethod -match "api") {
+    Write-Host "[TODO] Claude must use your subscription login, not an API key"; $ok = $false }
+}
+foreach ($v in "ANTHROPIC_API_KEY","OPENAI_API_KEY") {
+  if ([Environment]::GetEnvironmentVariable($v)) { Write-Host "[WARN] $v is set; the runner strips it, but consider removing it" }
+}
 if (Get-Command codex -ErrorAction SilentlyContinue) {
   codex --version
   codex login status

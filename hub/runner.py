@@ -26,7 +26,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from . import claude_exec
+from . import billing, claude_exec
 from .config import TaskRejected, branch_matches, load_config, validate_task
 from .gitutil import GitError, ensure_identity, git
 from .queue import GitQueue, now_iso
@@ -88,6 +88,7 @@ class Runner:
                               cfg["queue_dir"])
         self.verifier = verifier or gh_verify_submitter
         self.me = cfg["runner_id"]
+        self._billing_cache = None
 
     # ---------- bookkeeping ----------
     def history(self, event: str, **kw) -> None:
@@ -373,10 +374,34 @@ class Runner:
         cd = self.cooldown_until()
         if cd and cd > datetime.now(timezone.utc):
             return f"cooldown until {cd:%Y-%m-%dT%H:%M:%SZ}"
+        if self.queue.list("inbox") or self.queue.list("running"):
+            ok, why = self.billing_ok()
+            if not ok:
+                self.history("blocked_billing", reason=why)
+                return f"blocked: {why}"
         picked = self.pick()
         if not picked:
             return "idle"
         return self.process(*picked)
+
+    def billing_ok(self) -> tuple[bool, str]:
+        """Subscription-only guard, checked before any task is claimed (cached 10 min)."""
+        b = self.cfg["billing"]
+        if not b.get("subscription_only", True):
+            return True, "subscription_only disabled"
+        now = time.time()
+        if self._billing_cache and now - self._billing_cache[0] < 600:
+            return self._billing_cache[1]
+        ok, why = billing.check_claude(os.environ.get("CLAUDE_BIN", self.cfg["claude"]["bin"]),
+                                       b.get("claude_allowed_auth_methods"))
+        if ok and b.get("require_codex_subscription", True):
+            ok2, why2 = billing.check_codex(os.environ.get("CODEX_BIN", self.cfg["codex"]["bin"]))
+            if not ok2 and "not logged in" not in why2.lower():
+                ok, why = False, why2  # API-key Codex is refused; missing login is reported per call
+            else:
+                why = f"{why}; {why2}"
+        self._billing_cache = (now, (ok, why))
+        return ok, why
 
     def loop(self) -> None:
         while True:
@@ -386,7 +411,7 @@ class Runner:
                 self.history("loop_error", error=str(e)[:500])
                 status = "error"
             log.info("cycle: %s", status)
-            if status in ("idle", "paused", "error") or status.startswith("cooldown"):
+            if status in ("idle", "paused", "error") or status.startswith(("cooldown", "blocked")):
                 time.sleep(self.cfg["poll_interval_sec"])
 
 

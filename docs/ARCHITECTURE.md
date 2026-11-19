@@ -76,6 +76,23 @@ flags, a hard timeout, and a JSONL log of every call that the runner puts in the
    (`claude`, `codex login`, git credential manager / `gh auth`). Logs, reports and Codex
    call logs pass through `redact()` before being written or pushed.
 
+## Billing: subscription only (owner rule: no extra charges)
+
+`hub/billing.py`, checked before any task is claimed (fail closed, task stays in inbox):
+
+* Claude Code must report `loggedIn` with a subscription OAuth `authMethod` and
+  `apiProvider = firstParty` (`claude auth status --json`). API key / apiKeyHelper /
+  Bedrock / Vertex / Foundry → runner status `blocked: …`, nothing runs.
+* Codex must report a **ChatGPT** login (`codex login status`); API-key login is refused.
+* `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `OPENAI_API_KEY`, `CODEX_API_KEY`, Bedrock/Vertex
+  switches are stripped from every child process, so a key on the machine cannot switch
+  either CLI to metered billing.
+* Subscription usage limits → cooldown and retry later; never fall back to a paid path.
+* Not controllable from code: the account-level **"extra usage" / pay-as-you-go overage**
+  settings on claude.ai and chatgpt.com. Keep them **OFF**.
+* `total_cost_usd` in reports is a list-price estimate from Claude Code, not a charge,
+  when running on a subscription.
+
 ## Reliability
 
 | Situation | Behaviour |

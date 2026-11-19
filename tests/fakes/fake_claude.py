@@ -8,6 +8,12 @@ FAKE_CLAUDE_MODE: delegate (default) | rate_limit | crash
 import json, os, subprocess, sys, uuid
 args = sys.argv[1:]
 mode = os.environ.get("FAKE_CLAUDE_MODE", "delegate")
+if args[:2] == ["auth", "status"]:
+    auth = os.environ.get("FAKE_CLAUDE_AUTH", "oauth_token")
+    if "ANTHROPIC_API_KEY" in os.environ:
+        auth = "api_key"  # what the real CLI would do: a key in env wins over the subscription
+    print(json.dumps({"loggedIn": True, "authMethod": auth, "apiProvider": "firstParty"})); sys.exit(0)
+assert "ANTHROPIC_API_KEY" not in os.environ, "API key leaked into claude -p env"
 if mode == "rate_limit":
     print("API Error: 429 rate limit exceeded", file=sys.stderr); sys.exit(1)
 if mode == "crash":

@@ -9,6 +9,7 @@ import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .billing import subscription_env
 from .redact import redact
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -131,7 +132,7 @@ def run_claude(task: dict, workspace: Path, cfg: dict, run_dir: Path,
     prompt = build_prompt(task, bool(resume_session))
 
     # Claude Code's default MCP tool timeout is short (~60s); Codex runs take minutes.
-    env = dict(os.environ)
+    env = subscription_env()  # strip API keys: subscription billing only
     env["MCP_TOOL_TIMEOUT"] = str((int(cfg["codex"]["timeout_sec"]) + 120) * 1000)
     env.setdefault("MCP_TIMEOUT", "60000")
     try:

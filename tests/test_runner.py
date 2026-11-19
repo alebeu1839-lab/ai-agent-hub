@@ -94,7 +94,8 @@ class RunnerE2E(unittest.TestCase):
         self.env = Env(Path(self._td.name))
         os.environ["CLAUDE_BIN"] = str(FAKES / "fake_claude.py")
         os.environ["CODEX_BIN"] = str(FAKES / "fake_codex.py")
-        for k in ("FAKE_CLAUDE_MODE", "FAKE_CODEX_MODE"):
+        for k in ("FAKE_CLAUDE_MODE", "FAKE_CODEX_MODE", "FAKE_CLAUDE_AUTH", "ANTHROPIC_API_KEY",
+                  "OPENAI_API_KEY"):
             os.environ.pop(k, None)
 
     def tearDown(self):
@@ -193,6 +194,44 @@ class RunnerE2E(unittest.TestCase):
         result = json.loads(self.env.read_queue("results/a-001/result.json"))
         self.assertEqual(result["codex_calls"][0]["error_kind"], "auth")
         self.assertTrue(any("no successful Codex call" in w for w in result["warnings"]))
+
+    def test_billing_blocks_api_key_claude(self):
+        os.environ["FAKE_CLAUDE_AUTH"] = "api_key"
+        self.env.submit(task("b-001"))
+        status = self.runner().run_once()
+        self.assertTrue(status.startswith("blocked:"), status)
+        self.assertIn("api_key", status)
+        self.assertTrue(self.env.exists("inbox/b-001.json"))  # task untouched, not consumed
+
+    def test_billing_blocks_bedrock(self):
+        os.environ["FAKE_CLAUDE_AUTH"] = "oauth_token"
+        from hub import billing
+        orig = billing.check_claude
+        billing.check_claude = lambda *a, **k: (False, "Claude Code uses provider 'bedrock' (metered)")
+        try:
+            self.env.submit(task("b-002"))
+            self.assertIn("bedrock", self.runner().run_once())
+        finally:
+            billing.check_claude = orig
+
+    def test_billing_blocks_api_key_codex(self):
+        os.environ["FAKE_CODEX_MODE"] = "apikey"
+        self.env.submit(task("b-003"))
+        status = self.runner().run_once()
+        self.assertIn("ChatGPT login", status)
+
+    def test_api_keys_stripped_from_children(self):
+        # Keys present on the machine must never reach claude/codex (fakes assert this).
+        os.environ["ANTHROPIC_API_KEY"] = "sk-ant-should-not-leak-0000"
+        os.environ["OPENAI_API_KEY"] = "sk-proj-should-not-leak-000000000"
+        self.env.submit(task("b-004"))
+        self.assertEqual(self.runner().run_once(), "done")
+        result = json.loads(self.env.read_queue("results/b-004/result.json"))
+        self.assertEqual(result["codex_calls"][0]["exit_code"], 0)
+
+    def test_idle_queue_skips_billing_check(self):
+        os.environ["FAKE_CLAUDE_AUTH"] = "api_key"
+        self.assertEqual(self.runner().run_once(), "idle")
 
     def test_pause_switch(self):
         self.env.submit(task("s-001"))
