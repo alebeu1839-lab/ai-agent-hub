@@ -1,5 +1,8 @@
 # AI Agent Hub — Claude Code 起動時の入口
 
+## 表示言語（本人指定 2026-11-20）
+- 本人への返答・質問・報告は常に日本語で表示する。
+
 ## 共通ルールの正本（必ず最初に読む）
 - 本家Addnessナレッジ「AIの役割分担（GPT・Claude Code・Codex）」
 - ナレッジID: `1df7df07-8d47-4881-808f-12ea25effc8e`
