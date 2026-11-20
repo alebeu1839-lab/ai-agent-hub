@@ -105,7 +105,23 @@ class FakeAddnessClient:
             direct = data.get("goals", {}).get(goal_id, {}).get("children")
         if direct is None:
             direct = [g for g in data.get("goals", {}).values() if g.get("parent_id") == goal_id]
-        return json.loads(json.dumps(direct or []))
+        goals = data.get("goals", {})
+        children = []
+        for stub in direct or []:
+            if not isinstance(stub, dict):
+                continue
+            gid = str(stub.get("id", ""))
+            if not UUID_RE.match(gid):
+                children.append({**stub, "invalid_id": True})
+                continue
+            detail = goals.get(gid)
+            if detail is None:
+                children.append({**stub, "deleted": True})
+            else:
+                children.append({**detail, **stub, "body": detail.get("body", ""),
+                                 "comments": detail.get("comments", []),
+                                 "ai_activity": detail.get("ai_activity", "")})
+        return json.loads(json.dumps(children))
 
     @staticmethod
     def _today_goal_id(value) -> str:
@@ -119,6 +135,8 @@ class FakeAddnessClient:
 
     def add_today_todo(self, goal_id: str) -> None:
         self._check()
+        if not UUID_RE.match(goal_id):
+            raise AddnessError("invalid goal id")
         data = self._load()
         today = data.setdefault("today", [])
         if goal_id not in {self._today_goal_id(item) for item in today}:
@@ -220,11 +238,42 @@ class ClaudeMcpAddnessClient:
         self._call(["write_goal_detail"], req)
 
     def list_children(self, goal_id: str) -> list[dict]:
+        if not UUID_RE.match(goal_id):
+            raise AddnessError("invalid goal id")
         req = (f"Call {self._tool('get_goal')} with goal_id=\"{goal_id}\" and sections=[\"children\"]. "
-               "Return {\"children\": [{\"id\", \"title\", \"status\", \"completed_at\", \"body\", "
-               "\"comments\", \"ai_activity\"}]} in display order, copying text verbatim.")
+               "Return {\"children\": [{\"id\", \"title\", \"status\"}]} in display order.")
         data = self._call(["get_goal"], req)
-        return [item for item in data.get("children", data.get("items", [])) if isinstance(item, dict)]
+        children = []
+        for row in data.get("children", data.get("items", [])):
+            if not isinstance(row, dict):
+                continue
+            child = dict(row)
+            child_id = str(child.get("id", ""))
+            if not UUID_RE.match(child_id):
+                child["invalid_id"] = True
+                children.append(child)
+                continue
+            detail_req = (f"Call {self._tool('get_goal')} with goal_id=\"{child_id}\" and "
+                          "sections=[\"body\",\"comments\"]. Return {\"body\": <markdown>, "
+                          "\"comments\": [{\"author\", \"body\", \"created_at\"}], "
+                          "\"ai_activity\": <activity status if present>} copying text verbatim.")
+            try:
+                detail = self._call(["get_goal"], detail_req)
+            except AddnessAuthError:
+                raise
+            except AddnessError as e:
+                if re.search(r"not found|does not exist|deleted|削除", str(e), re.I):
+                    child["deleted"] = True
+                    children.append(child)
+                    continue
+                raise
+            if detail.get("deleted"):
+                child["deleted"] = True
+            else:
+                child.update(body=detail.get("body", ""), comments=detail.get("comments", []),
+                             ai_activity=detail.get("ai_activity", ""))
+            children.append(child)
+        return children
 
     def list_today_ids(self) -> set[str]:
         req = (f"Call {self._tool('list_today_todos')} with no arguments. Return "
@@ -234,7 +283,9 @@ class ClaudeMcpAddnessClient:
                 if FakeAddnessClient._today_goal_id(item)}
 
     def add_today_todo(self, goal_id: str) -> None:
-        req = (f"Call {self._tool('create_today_todo')} with goal_id=\"{goal_id}\". "
+        if not UUID_RE.match(goal_id):
+            raise AddnessError("invalid goal id")
+        req = (f"Call {self._tool('create_today_todo')} with objective_id=\"{goal_id}\". "
                "Return {\"ok\": true}.")
         self._call(["create_today_todo"], req)
 

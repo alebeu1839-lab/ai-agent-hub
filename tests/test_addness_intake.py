@@ -13,9 +13,10 @@ import unittest
 from pathlib import Path
 
 from hub import config as hubconfig
-from hub.addness import AddnessAuthError, ClaudeMcpAddnessClient, FakeAddnessClient
+from hub.addness import AddnessAuthError, AddnessError, ClaudeMcpAddnessClient, FakeAddnessClient
 from hub.addness_intake import AddnessBridge, CLAIM_RE, task_id_for
 from hub.runner import Runner
+from hub.handoff import select_next
 from tests.test_runner import FAKES, Env, sh
 
 PRACTICE = "fe511787-f4a2-460e-a100-3e0e4a775577"
@@ -230,14 +231,16 @@ class HandoffWriteback(unittest.TestCase):
         self._td = tempfile.TemporaryDirectory()
         tmp = Path(self._td.name)
         store = tmp / "addness.json"
-        task_id, parent_id, next_id = "task-1", "parent-1", "next-1"
+        task_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+        parent_id = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+        next_id = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
         task = goal(task_id, "completed task")
         task["parent_id"] = parent_id
         goals = {task_id: task, parent_id: goal(parent_id, "parent")}
         kids = [{"id": task_id, "title": task["title"], "status": "NONE"}]
         if with_sibling:
             goals[next_id] = goal(next_id, "follow up")
-            kids.append(goals[next_id])
+            kids.append({"id": next_id, "title": goals[next_id]["title"], "status": "NONE"})
         store.write_text(json.dumps({"goals": goals, "children": {parent_id: kids, task_id: []},
                                      "today": []}, ensure_ascii=False), encoding="utf-8")
         client = FakeAddnessClient(store)
@@ -259,22 +262,67 @@ class HandoffWriteback(unittest.TestCase):
 
     def test_writeback_adds_one_today_todo_once(self):
         bridge, client, store, task_id, next_id = self.run_writeback()
+        calls = []
+        add_today = client.add_today_todo
+        client.add_today_todo = lambda goal_id: (calls.append(goal_id), add_today(goal_id))[-1]
         self.assertEqual(bridge.writeback(), [task_id])
         self.assertEqual(client.list_today_ids(), {next_id})
         ledger = bridge.ledger.get(task_id)
         self.assertEqual(ledger["handoff_added"], next_id)
-        self.assertEqual(bridge.writeback(), [])
-        self.assertEqual(client.list_today_ids(), {next_id})
+        self.assertEqual(calls, [next_id])
+        # Force another write-back pass after removing the todo to exercise the ledger guard itself.
+        saved = client._load()
+        saved["today"] = []
+        client._save(saved)
+        bridge.ledger.set(task_id, state="submitted", task_id=task_id_for(task_id), detail_written=True)
+        self.assertEqual(bridge.writeback(), [task_id])
+        self.assertEqual(calls, [next_id])
+        self.assertEqual(client.list_today_ids(), set())
         detail = client.get_task(task_id)["body"]
         self.assertIn("## 残件と次の1件", detail)
         self.assertIn(next_id, detail)
         self._td.cleanup()
 
+    def test_fake_children_metadata_is_enriched_and_deleted_child_is_marked(self):
+        bridge, client, _, task_id, next_id = self.run_writeback()
+        parent_id = client.get_task(task_id)["parent_id"]
+        data = client._load()
+        deleted_id = "dddddddd-dddd-4ddd-8ddd-dddddddddddd"
+        data["children"][parent_id].append({"id": deleted_id, "title": "deleted", "status": "NONE"})
+        client._save(data)
+        stored_child = client._load()["children"][parent_id][1]
+        self.assertEqual(set(stored_child), {"id", "title", "status"})
+        children = client.list_children(parent_id)
+        self.assertEqual(set(children[1]) - {"owner", "ideal", "path"},
+                         {"id", "title", "status", "body", "comments", "ai_activity"})
+        self.assertIn("body", children[1])
+        self.assertTrue(children[-1]["deleted"])
+        selection = select_next({"id": parent_id}, children[1:], set(), set(), {})
+        self.assertIn((deleted_id, "deleted"), selection.skipped)
+        self._td.cleanup()
+
+    def test_handoff_error_keeps_main_writeback_and_auth_error_propagates(self):
+        bridge, client, _, task_id, _ = self.run_writeback()
+
+        def fail_handoff(_gid):
+            raise RuntimeError("temporary handoff lookup failure")
+
+        bridge._handoff_writeback = fail_handoff
+        self.assertEqual(bridge.writeback(), [task_id])
+        self.assertIn("AI Agent Hub 実行結果", client.get_task(task_id)["body"])
+        self.assertIn("引継ぎ処理エラー", client.get_task(task_id)["body"])
+
+        bridge.ledger.set(task_id, state="submitted", task_id=task_id_for(task_id), detail_written=False)
+        bridge._handoff_writeback = lambda _gid: (_ for _ in ()).throw(AddnessAuthError("auth required"))
+        with self.assertRaises(AddnessAuthError):
+            bridge.writeback()
+        self._td.cleanup()
+
     def test_no_child_does_not_call_add_today_todo(self):
         from unittest.mock import patch
-        bridge, client, _, _, _ = self.run_writeback(with_sibling=False)
+        bridge, client, _, task_id, _ = self.run_writeback(with_sibling=False)
         with patch.object(client, "add_today_todo", wraps=client.add_today_todo) as add:
-            bridge._handoff_writeback("task-1")
+            bridge._handoff_writeback(task_id)
             add.assert_not_called()
         self._td.cleanup()
 
@@ -335,6 +383,38 @@ class ClaudeMcpClientParsing(unittest.TestCase):
         self.answer({"id": OTHER, "title": "t"})
         with self.assertRaises(Exception):
             self.client.get_task(PRACTICE)
+
+    def test_list_children_fetches_details_in_a_second_stage_and_marks_deleted(self):
+        from unittest.mock import patch
+        child_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+        deleted_id = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
+        parent_id = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
+        with patch.object(self.client, "_call", side_effect=[
+                {"children": [{"id": child_id, "title": "child", "status": "NONE"},
+                              {"id": deleted_id, "title": "gone", "status": "NONE"},
+                              {"id": "bad-id", "title": "invalid", "status": "NONE"}]},
+                {"body": "detail body", "comments": [{"body": "comment"}], "ai_activity": "working"},
+                AddnessError("goal not found: deleted")]) as call:
+            children = self.client.list_children(parent_id)
+        self.assertEqual(children[0]["body"], "detail body")
+        self.assertEqual(children[0]["comments"], [{"body": "comment"}])
+        self.assertEqual(children[0]["ai_activity"], "working")
+        self.assertTrue(children[1]["deleted"])
+        self.assertTrue(children[2]["invalid_id"])
+        self.assertEqual(call.call_count, 3)  # children list + two valid UUID detail lookups
+        self.assertTrue(call.call_args_list[0].args[1].find('sections=["children"]') >= 0)
+        self.assertTrue(call.call_args_list[1].args[1].find('sections=["body","comments"]') >= 0)
+
+    def test_create_today_todo_uses_objective_id_and_validates_uuid(self):
+        from unittest.mock import patch
+        objective_id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
+        with patch.object(self.client, "_call", return_value={"ok": True}) as call:
+            self.client.add_today_todo(objective_id)
+            self.assertIn(f'objective_id="{objective_id}"', call.call_args.args[1])
+            self.assertEqual(call.call_args.args[0], ["create_today_todo"])
+            with self.assertRaises(AddnessError):
+                self.client.add_today_todo("not-a-uuid")
+            self.assertEqual(call.call_count, 1)
 
 
 if __name__ == "__main__":

@@ -389,7 +389,15 @@ class AddnessBridge:
             rdir = self.queue.root / "results" / tid
             result = json.loads((rdir / "result.json").read_text(encoding="utf-8")) if (rdir / "result.json").exists() else {}
             report = (rdir / "report.md").read_text(encoding="utf-8") if (rdir / "report.md").exists() else ""
-            handoff_section, _ = self._handoff_writeback(gid)
+            try:
+                handoff_section, _ = self._handoff_writeback(gid)
+            except AddnessAuthError:
+                raise
+            except Exception as e:  # handoff is optional; preserve the primary result write-back
+                handoff_section = ("\n## 残件と次の1件\n\n"
+                                   f"- 引継ぎ判定エラー: {redact(str(e))[:300]}\n\n"
+                                   "追加なし（引継ぎ処理エラー）")
+                self.history("handoff_failed", goal=gid, error=str(e)[:300])
             detail, comment = self.render_writeback(gid, state, result, report, handoff_section)
             if not led.get("detail_written"):
                 self.client.append_detail(gid, detail)

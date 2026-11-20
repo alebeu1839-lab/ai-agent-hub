@@ -12,6 +12,7 @@ CLAIM_RE = re.compile(r"\[ai-agent-hub:claim\b")
 DONE_RE = re.compile(r"\[ai-agent-hub:done\b")
 STOP_RE = re.compile(r"^\s*\[ai-agent-hub:stop\]\s*$", re.M)
 DEPENDENCY_RE = re.compile(r"依存\s*[:：]\s*([^\s,;，；、]+)")
+UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 
 
 @dataclass
@@ -68,7 +69,8 @@ def select_next(parent: dict, children: list[dict], today_ids: set[str],
     del parent  # Reserved for parent-aware rules; selection is currently child-local.
     today_ids = {str(x) for x in today_ids}
     queue_ids = {str(x) for x in queue_ids}
-    unfinished_ids = {str(c.get("id", "")) for c in children if not _completed(c)}
+    unfinished_ids = {str(c.get("id", "")) for c in children
+                      if not _completed(c) and not c.get("deleted") and UUID_RE.match(str(c.get("id", "")))}
     handoff_cfg = cfg.get("handoff") or ((cfg.get("addness") or {}).get("handoff") or {})
     keywords = handoff_cfg.get("approval_keywords")
     if keywords is None:
@@ -86,11 +88,16 @@ def select_next(parent: dict, children: list[dict], today_ids: set[str],
         comments = _comments(child)
         text = "\n".join([body, *comments])
         complete = _completed(child)
-        if not complete:
+        valid_id = bool(UUID_RE.match(gid))
+        if not complete and not child.get("deleted") and valid_id:
             remaining.append(child)
 
         reason = None
-        if complete:
+        if child.get("deleted"):
+            reason = "deleted"
+        elif not valid_id:
+            reason = "invalid_id"
+        elif complete:
             reason = "completed"
         elif any(marker in text for marker in WAITING_MARKERS) or _activity(child) == "waiting":
             reason = "waiting_approval"
