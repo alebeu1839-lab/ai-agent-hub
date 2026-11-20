@@ -32,6 +32,12 @@
 - 同一ファイルの並列編集を避け、他AIの未コミット作業を上書きしない。
 - Addnessゴール: https://www.addness.com/goals/67d0ab23-6267-4d13-aff9-359126fb62e1 （名称変更と次の検証方針を2026-11-20に記録）。
 
+## 共通ルールの参照（2026-11-20 追加）
+- 正本: Addnessナレッジ `1df7df07-8d47-4881-808f-12ea25effc8e`（Claude Codeが読んだのは revision 3）。入口は `CLAUDE.md`（Claude Code）と `AGENTS.md`（Codex。Codex CLIはリポジトリ直下のAGENTS.mdを自動で読む）。
+- Codexの受領確認（PCで本人かClaude Codeが1回だけ実行、ファイル変更なし）:
+  `codex exec --sandbox read-only --cd <このリポジトリ> (Get-Content prompts\codex-rules-handoff.md -Raw) | Tee-Object state\codex-rules-ack.txt`
+  応答の先頭が `RULES_ACK revision=3` で、7項目が AGENTS.md と一致すれば合格。
+
 ## 最新状況（作業したAIが更新する）
 - **更新者**: Claude Code（クラウドセッション）
 - **最終確認**: 2026-11-20 JST
