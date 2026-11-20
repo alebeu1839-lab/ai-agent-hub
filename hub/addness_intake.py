@@ -31,7 +31,6 @@ from pathlib import Path
 
 from .addness import AddnessAuthError, AddnessError, make_client
 from .config import TaskRejected, load_config, validate_task
-from .handoff import select_next
 from .queue import STATES, GitQueue, now_iso
 from .redact import redact
 
@@ -268,78 +267,7 @@ class AddnessBridge:
         self.history("submitted", goal=g["id"], task=t["id"], result=res)
 
     # ------------------------------------------------------------------ write-back
-    def _handoff_writeback(self, gid: str) -> tuple[str, str | None]:
-        """Select at most one next todo from sibling tasks or this task's children."""
-        handoff_cfg = self.a.get("handoff") or {}
-        if not handoff_cfg.get("enabled", False):
-            return "", None
-
-        task = self.client.get_task(gid)
-        parent_id = str(task.get("parent_id") or task.get("parent_goal_id") or "")
-        today_ids = self.client.list_today_ids()
-        queue_ids = {p.stem for state in STATES for p in self.queue.list(state)}
-        groups: list[tuple[str, dict, list[dict]]] = []
-        if parent_id:
-            parent_children = [c for c in self.client.list_children(parent_id)
-                               if str(c.get("id", "")) != gid]
-            groups.append(("親ゴールの残件", {"id": parent_id}, parent_children))
-        groups.append(("このタスクの子ゴール", task, self.client.list_children(gid)))
-
-        selections = [(label, children, select_next(parent, children, today_ids, queue_ids, self.a))
-                      for label, parent, children in groups]
-        added_id = None
-        reported_next_id = None
-        already_queued = None
-        candidate = None
-        for label, _, selection in selections:
-            if selection.next is not None:
-                candidate = (label, selection.next)
-                break
-            already_queued = next((child_id for child_id, reason in selection.skipped
-                                   if reason == "already_queued_next"), None)
-            if already_queued:
-                break
-        if already_queued:
-            outcome = f"既に今日のToDoにあるため追加なし（already_queued_next: {already_queued}）"
-        elif candidate:
-            _, child = candidate
-            added_id = str(child["id"])
-            reported_next_id = added_id
-            recorded = (self.ledger.get(gid) or {}).get("handoff_added")
-            if recorded == added_id:
-                outcome = f"追加済みの次の1件（台帳記録: {added_id}）"
-                added_id = None
-            else:
-                self.client.add_today_todo(added_id)
-                self.ledger.set(gid, handoff_added=added_id)
-                outcome = f"追加した次の1件: {added_id} — {child.get('title', '')}"
-        else:
-            reasons = [reason for _, _, selection in selections for _, reason in selection.skipped]
-            reason = reasons[0] if reasons else "実行可能な未完了の子がありません"
-            outcome = f"追加なし（{reason}）"
-
-        reason_by_id = {child_id: reason for _, _, selection in selections
-                        for child_id, reason in selection.skipped}
-        next_id = reported_next_id or added_id or already_queued
-        lines = ["", "## 残件と次の1件", ""]
-        for label, children, selection in selections:
-            lines += [f"### {label}"]
-            if not selection.remaining:
-                lines.append("- 残件なし")
-                continue
-            for child in selection.remaining:
-                child_id = str(child.get("id", ""))
-                reason = reason_by_id.get(child_id)
-                if child_id == next_id:
-                    reason = "今日のToDoに追加" if added_id else "今日のToDoに登録済み"
-                elif not reason and selection.next and child_id == str(selection.next.get("id", "")):
-                    reason = "別の候補を優先"
-                lines.append(f"- `{child_id}` — {child.get('title', '')} — {reason or '選定対象外'}")
-        lines += ["", outcome]
-        return "\n".join(lines), added_id
-
-    def render_writeback(self, gid: str, state: str, result: dict, report: str,
-                         handoff_section: str = "") -> tuple[str, str]:
+    def render_writeback(self, gid: str, state: str, result: dict, report: str) -> tuple[str, str]:
         verdict = "未判定"
         m = re.search(r"##\s*Review verdict\s*\n+\s*\**(PASS|FAIL)", report, re.I)
         if m:
@@ -369,8 +297,6 @@ class AddnessBridge:
         lines += ["", f"_詳細レポート: キューブランチ `{self.cfg['queue_branch']}` の "
                       f"`{self.cfg['queue_dir']}/results/{task_id_for(gid)}/report.md`。マージ・デプロイはしていません。"
                       "タスクの完了は担当者が判断してください。_"]
-        if handoff_section:
-            lines.append(handoff_section)
         comment = (f"[ai-agent-hub:done task={task_id_for(gid)} status={status} verdict={verdict} sha={head}]\n"
                    f"AI Agent Hubの処理が終わりました（{'確認待ち' if waiting else 'レビュー合格'}）。"
                    "結果・テスト・コミットSHA・未解決事項はタスク詳細に追記しました。")
@@ -389,8 +315,7 @@ class AddnessBridge:
             rdir = self.queue.root / "results" / tid
             result = json.loads((rdir / "result.json").read_text(encoding="utf-8")) if (rdir / "result.json").exists() else {}
             report = (rdir / "report.md").read_text(encoding="utf-8") if (rdir / "report.md").exists() else ""
-            handoff_section, _ = self._handoff_writeback(gid)
-            detail, comment = self.render_writeback(gid, state, result, report, handoff_section)
+            detail, comment = self.render_writeback(gid, state, result, report)
             if not led.get("detail_written"):
                 self.client.append_detail(gid, detail)
                 self.ledger.set(gid, detail_written=True)

@@ -97,34 +97,6 @@ class FakeAddnessClient:
         g["body"] = (g.get("body") or "").rstrip() + "\n\n" + markdown.strip() + "\n"
         self._save(data)
 
-    def list_children(self, goal_id: str) -> list[dict]:
-        self._check()
-        data = self._load()
-        direct = (data.get("children") or {}).get(goal_id)
-        if direct is None:
-            direct = data.get("goals", {}).get(goal_id, {}).get("children")
-        if direct is None:
-            direct = [g for g in data.get("goals", {}).values() if g.get("parent_id") == goal_id]
-        return json.loads(json.dumps(direct or []))
-
-    @staticmethod
-    def _today_goal_id(value) -> str:
-        value = str(value.get("goal_id") or value.get("id") or value.get("task_id") or "") if isinstance(value, dict) else str(value)
-        return value[len("addness-"):] if value.startswith("addness-") else value
-
-    def list_today_ids(self) -> set[str]:
-        self._check()
-        data = self._load()
-        return {self._today_goal_id(item) for item in data.get("today", []) if self._today_goal_id(item)}
-
-    def add_today_todo(self, goal_id: str) -> None:
-        self._check()
-        data = self._load()
-        today = data.setdefault("today", [])
-        if goal_id not in {self._today_goal_id(item) for item in today}:
-            today.append(goal_id)
-            self._save(data)
-
 
 # --------------------------------------------------------------------------- claude + MCP
 CLIENT_SYSTEM = """You are a strict data-transport helper for the AI Agent Hub runner.
@@ -200,7 +172,7 @@ class ClaudeMcpAddnessClient:
         if not UUID_RE.match(goal_id):
             raise AddnessError("invalid goal id")
         req = (f"Call {self._tool('get_goal')} with goal_id=\"{goal_id}\" and "
-               "sections=[\"body\",\"path\",\"comments\"]. Return {\"id\", \"parent_id\", \"title\", "
+               "sections=[\"body\",\"path\",\"comments\"]. Return {\"id\", \"title\", "
                "\"status\" (\"DONE\" or \"NONE\"), \"owner\": <owner display name>, \"path\": [ancestor titles from the root, ending "
                "with this goal's title], \"ideal\": <Ideal text>, \"body\": <detail body markdown>, "
                "\"comments\": [{\"author\", \"body\", \"created_at\"}]} copying text verbatim.")
@@ -218,25 +190,6 @@ class ClaudeMcpAddnessClient:
         req = (f"Call {self._tool('write_goal_detail')} with goal_id=\"{goal_id}\", mode=\"append\" and "
                f"this exact markdown (verbatim):\n-----\n{markdown}\n-----\nReturn {{\"ok\": true}}.")
         self._call(["write_goal_detail"], req)
-
-    def list_children(self, goal_id: str) -> list[dict]:
-        req = (f"Call {self._tool('get_goal')} with goal_id=\"{goal_id}\" and sections=[\"children\"]. "
-               "Return {\"children\": [{\"id\", \"title\", \"status\", \"completed_at\", \"body\", "
-               "\"comments\", \"ai_activity\"}]} in display order, copying text verbatim.")
-        data = self._call(["get_goal"], req)
-        return [item for item in data.get("children", data.get("items", [])) if isinstance(item, dict)]
-
-    def list_today_ids(self) -> set[str]:
-        req = (f"Call {self._tool('list_today_todos')} with no arguments. Return "
-               "{\"items\": [{\"goal_id\": <Addness goal id>}]} for today's todos.")
-        data = self._call(["list_today_todos"], req)
-        return {FakeAddnessClient._today_goal_id(item) for item in data.get("items", [])
-                if FakeAddnessClient._today_goal_id(item)}
-
-    def add_today_todo(self, goal_id: str) -> None:
-        req = (f"Call {self._tool('create_today_todo')} with goal_id=\"{goal_id}\". "
-               "Return {\"ok\": true}.")
-        self._call(["create_today_todo"], req)
 
 
 def make_client(cfg: dict, state_dir: Path):
