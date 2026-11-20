@@ -88,6 +88,18 @@
     "base_branch": "claude/funny-johnson-d34brp",
     "mode": "implement",
     "max_tasks_per_cycle": 1,
-    "claude_timeout_sec": 300
+    "claude_timeout_sec": 300,
+    "handoff": {
+      "enabled": false,
+      "approval_keywords": [
+        "課金",
+        "契約",
+        "公開",
+        "メール送信",
+        "マージ",
+        "デプロイ",
+        "本番"
+      ]
+    }
   }
 }
