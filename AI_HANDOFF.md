@@ -51,3 +51,7 @@
   4. 実行中タスクへの `[ai-agent-hub:stop]` は次の受信を止めるだけで、実行中の処理は止めない（止めるには PAUSE）。
   5. 他PCがclaimしたまま止まったタスクは自動で引き継がない（安全側）。手動でclaimコメントを消すか再登録。
 - **次に何をする**: 本人がPCで `docs/ADDNESS-INTAKE.md` の「PCへの導入」を実施 → 練習タスク fe511787 で1回手動サイクル → 結果を確認後に自動化を承認。
+
+### 2026-11-21 Claude Code（子ゴール引継ぎ, run-id: subgoal-handoff-20261120）
+- ブランチ `claude/claude-code-pc-subgoal-handoff-b7cl6u`、HEAD `4df54fb`（Codex実装）、レビュー PASS、56件 OK。
+- 実際のAddnessで `handoff.enabled=true` にして動かす確認はまだ。詳細は `docs/HANDOFF.md`。
