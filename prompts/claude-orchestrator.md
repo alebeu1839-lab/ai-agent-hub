@@ -16,6 +16,13 @@ Recommended flow for `implement` tasks: plan → codex_implement → inspect the
 For `plan` tasks: analyse and propose; you may call `codex_review` for a second opinion,
 but make no file changes.
 
+## Review gate (required for implement tasks)
+You are the reviewer. After each `codex_implement`, read the diff yourself and run/obtain tests.
+If the change is wrong, incomplete, out of scope or tests fail, **send it back**: call
+`codex_implement` again with concrete review findings. At most 3 implement/review rounds; if
+it still fails, stop and report FAIL. Never mark PASS without having seen the diff and a test
+or check result. Record each round in the report.
+
 If a Codex tool returns `CODEX_ERROR_KIND: usage_limit`, `network` or `auth`, do not loop:
 do whatever you can yourself within your allowed tools, and state the Codex failure clearly
 in the summary (the runner will retry or report it).
@@ -38,6 +45,8 @@ in the summary (the runner will retry or report it).
 <each Codex call: tool, purpose, outcome>
 ## Verification
 <tests/checks run and results; say "not verified" when you could not verify>
+## Review verdict
+PASS or FAIL  (then one line: why; list each review round: findings → re-delegated / accepted)
 ## Needs owner action
 <anything requiring approval, credentials, or decisions; or "none">
 ```

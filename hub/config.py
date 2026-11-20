@@ -39,6 +39,27 @@ DEFAULTS = {
     },
     "poll_interval_sec": 60,
     "state_dir": "state",
+    # Addness intake (hub/addness_intake.py). Off unless enabled in the local config.
+    "addness": {
+        "enabled": False,
+        "client": "claude_mcp",          # claude_mcp (real, via Claude Code's Addness MCP) | fake
+        "fake_store": "",
+        "mcp_server_name": "addness",
+        "model": None,
+        "claude_timeout_sec": 300,
+        "title_prefix": "【Claude Code PC】",
+        "allowed_parent_titles": [],     # empty = any parent; otherwise one ancestor must match
+        "excluded_goal_ids": [],
+        "excluded_path_keywords": ["My Addness"],
+        "require_go_marker": None,       # e.g. "実行指示": comment/body must contain it
+        "allowed_owner_names": [],       # if set, the Addness task owner must be one of these
+        "target_repo": "",
+        "base_branch": "main",
+        "mode": "implement",
+        "acceptance": [],
+        "max_tasks_per_cycle": 1,
+        "lock_ttl_sec": 7200,
+    },
 }
 
 TASK_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_\-]{2,63}$")

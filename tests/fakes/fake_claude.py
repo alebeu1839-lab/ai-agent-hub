@@ -27,7 +27,7 @@ assert "Bash(git push:*)" in settings["permissions"]["deny"]
 assert "--restricted" in args
 prompt = sys.stdin.read()
 assert prompt.strip(), "prompt must arrive on stdin"
-tool = "codex_implement" if "mcp__codex__codex_implement" in allowed else "codex_review"
+implement = "mcp__codex__codex_implement" in allowed
 env = {**os.environ, **srv["env"]}
 p = subprocess.Popen([srv["command"], *srv["args"]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, env=env)
 def rpc(i, method, params=None):
@@ -35,10 +35,28 @@ def rpc(i, method, params=None):
     return json.loads(p.stdout.readline())
 rpc(1, "initialize", {"protocolVersion": "2025-06-18"})
 tools = [t["name"] for t in rpc(2, "tools/list")["result"]["tools"]]
-r = rpc(3, "tools/call", {"name": tool, "arguments": {"instructions": "add marker file"}})["result"]
+def call(i, name, args):
+    return rpc(i, "tools/call", {"name": name, "arguments": args})["result"]["content"][0]["text"]
+rounds, texts, verdict, i = [], [], "FAIL", 10
+if implement:
+    instructions = "add marker file"
+    for rnd in range(1, 4):  # the review gate the orchestrator prompt requires
+        texts.append(call(i, "codex_implement", {"instructions": instructions})); i += 1
+        review = call(i, "codex_review", {}); i += 1
+        texts.append(review)
+        if "VERDICT: APPROVE" in review:
+            rounds.append(f"round {rnd}: approved"); verdict = "PASS"; break
+        rounds.append(f"round {rnd}: changes requested -> re-delegated")
+        instructions = "address review: " + review
+    tool = "codex_implement"
+else:
+    texts.append(call(i, "codex_review", {"paths": ["README.md"]})); tool = "codex_review"; verdict = "PASS"
+    rounds.append("plan review")
 p.stdin.close(); p.wait()
-text = r["content"][0]["text"]
+text = "\n".join(texts)
 out = {"type": "result", "subtype": "success", "is_error": False, "num_turns": 3,
        "session_id": str(uuid.uuid4()), "total_cost_usd": 0.0,
-       "result": f"## Summary\nfake claude delegated {tool} (tools seen: {tools})\n## Codex delegation\n{text}\n"}
+       "result": (f"## Summary\nfake claude delegated {tool} (tools seen: {tools})\n"
+                  f"## Codex delegation\n{text}\n## Verification\nfake: read CODEX_WAS_HERE.md back\n"
+                  f"## Review verdict\n{verdict}\n" + "\n".join(rounds) + "\n## Needs owner action\nnone\n")}
 print(json.dumps(out))

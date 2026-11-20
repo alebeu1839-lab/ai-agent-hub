@@ -18,7 +18,7 @@ The queue runner does **not** need a GitHub Actions self-hosted runner or any op
 
 **Quick path:** paste this into PowerShell (normal user). It does steps 1–5 below and processes one task:
 ```powershell
-irm https://raw.githubusercontent.com/alebeu1839-lab/ai-development-hub/feat/claude-code-dispatch/scripts/windows/bootstrap.ps1 | iex
+irm https://raw.githubusercontent.com/alebeu1839-lab/ai-agent-hub/feat/claude-code-dispatch/scripts/windows/bootstrap.ps1 | iex
 ```
 
 Manual steps:

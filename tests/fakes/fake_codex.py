@@ -31,6 +31,12 @@ if sandbox == "workspace-write":
         f.write("# Written by fake Codex\n\n" + prompt.splitlines()[-1][:200] + "\n")
     msg = "Implemented: created CODEX_WAS_HERE.md. Verified by reading the file back."
 else:
-    msg = "Review: no blocking issues found. VERDICT: APPROVE"
+    flag = os.path.join(cd, ".git", "fake_review_count")
+    n = int(open(flag).read()) if os.path.exists(flag) else 0
+    open(flag, "w").write(str(n + 1))
+    if os.environ.get("FAKE_CODEX_REVIEW") == "reject_once" and n == 0:
+        msg = "Review: marker file lacks a test. VERDICT: REQUEST_CHANGES"
+    else:
+        msg = "Review: no blocking issues found. VERDICT: APPROVE"
 open(last, "w").write(msg)
 print("fake codex done")

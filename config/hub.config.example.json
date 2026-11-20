@@ -1,29 +1,40 @@
 {
   "_comment": "Copy to config/hub.config.json (gitignored) and edit. Never put tokens or keys in this file.",
   "runner_id": "windows-main",
-
-  "queue_repo_url": "https://github.com/alebeu1839-lab/ai-development-hub.git",
+  "queue_repo_url": "https://github.com/alebeu1839-lab/ai-agent-hub.git",
   "queue_branch": "agent-queue",
   "queue_dir": "queue",
-
   "allowed_repos": {
-    "alebeu1839-lab/ai-development-hub": {
-      "clone_url": "https://github.com/alebeu1839-lab/ai-development-hub.git",
-      "allowed_base_branches": ["main", "feat/*", "claude/*"]
+    "alebeu1839-lab/ai-agent-hub": {
+      "clone_url": "https://github.com/alebeu1839-lab/ai-agent-hub.git",
+      "allowed_base_branches": [
+        "main",
+        "feat/*",
+        "claude/*"
+      ]
     }
   },
   "work_branch_prefix": "agent/",
-  "protected_branches": ["main", "master", "production", "release/*", "gh-pages"],
+  "protected_branches": [
+    "main",
+    "master",
+    "production",
+    "release/*",
+    "gh-pages"
+  ],
   "push_work_branch": true,
-
-  "allowed_modes": ["plan", "implement"],
+  "allowed_modes": [
+    "plan",
+    "implement"
+  ],
   "security": {
     "verify_submitter": true,
     "require_signed_commit": false,
-    "allowed_submitters": ["alebeu1839-lab"],
+    "allowed_submitters": [
+      "alebeu1839-lab"
+    ],
     "max_instruction_chars": 8000
   },
-
   "claude": {
     "bin": "claude",
     "timeout_sec": 2400,
@@ -36,7 +47,6 @@
     "timeout_sec": 1200,
     "model": null
   },
-
   "retry": {
     "max_attempts": 3,
     "base_backoff_sec": 120,
@@ -46,9 +56,38 @@
   "billing": {
     "_comment": "Subscription only. Runner refuses to run with API keys / Bedrock / Vertex. Keep 'extra usage' OFF in your Claude and ChatGPT account settings.",
     "subscription_only": true,
-    "claude_allowed_auth_methods": ["oauth_token", "oauth", "claude.ai", "claudeai", "subscription"],
+    "claude_allowed_auth_methods": [
+      "oauth_token",
+      "oauth",
+      "claude.ai",
+      "claudeai",
+      "subscription"
+    ],
     "require_codex_subscription": true
   },
   "poll_interval_sec": 60,
-  "state_dir": "state"
+  "state_dir": "state",
+  "addness": {
+    "_comment": "Addness intake (docs/ADDNESS-INTAKE.md). Uses Claude Code's own Addness MCP login on this PC; no Addness token here. Keep enabled=false until the isolated test passed.",
+    "enabled": false,
+    "client": "claude_mcp",
+    "mcp_server_name": "addness",
+    "title_prefix": "【Claude Code PC】",
+    "allowed_parent_titles": [
+      "AI社員運用基盤を作る（Addness × ChatGPT Work × Computer Use）"
+    ],
+    "excluded_goal_ids": [
+      "21c5ea2e-0714-4455-bb61-b9c23cf11a90"
+    ],
+    "excluded_path_keywords": [
+      "My Addness"
+    ],
+    "require_go_marker": null,
+    "allowed_owner_names": [],
+    "target_repo": "alebeu1839-lab/ai-agent-hub",
+    "base_branch": "claude/funny-johnson-d34brp",
+    "mode": "implement",
+    "max_tasks_per_cycle": 1,
+    "claude_timeout_sec": 300
+  }
 }

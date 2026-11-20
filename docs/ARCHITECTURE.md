@@ -23,6 +23,12 @@ Claude Code integrates + writes final report
 Runner: commit worktree → push branch agent/<id> → write results → move task to done/failed
 ```
 
+## Addness entry point
+
+`hub/addness_intake.py` puts Addness in front of the same queue: it claims `【Claude Code PC】`
+tasks in Addness, submits them to `queue/inbox/`, and after the runner finishes writes the
+result back to the same Addness task. See [ADDNESS-INTAKE.md](ADDNESS-INTAKE.md).
+
 ## Components
 
 | File | Role |

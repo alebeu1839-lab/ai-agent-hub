@@ -5,7 +5,7 @@ PC 上のランナーがそれを拾い、Claude Code → Codex で作業し、�
 
 ## 1. 指示を出す（タスク登録）
 
-`alebeu1839-lab/ai-development-hub` のブランチ **`agent-queue`** に、次のファイルを作成してコミット:
+`alebeu1839-lab/ai-agent-hub` のブランチ **`agent-queue`** に、次のファイルを作成してコミット:
 
 `queue/inbox/<id>.json`（ファイル名と `id` は同じにする）
 
@@ -14,7 +14,7 @@ PC 上のランナーがそれを拾い、Claude Code → Codex で作業し、�
   "id": "20261119-hello-01",
   "title": "挨拶ヘルパーを追加",
   "instructions": "hub_examples/hello.py に greet(name) を作り、unittest も追加。実装とテストは Codex に任せ、最後に Codex にレビューさせること。",
-  "repo": "alebeu1839-lab/ai-development-hub",
+  "repo": "alebeu1839-lab/ai-agent-hub",
   "base_branch": "main",
   "mode": "implement",
   "requested_by": "chatgpt",
@@ -50,7 +50,7 @@ status の意味: `done` 完了 / `retry_scheduled` 一時障害で自動再試�
 ```
 あなたは AI Agent Hub の司令塔。開発依頼を受けたら:
 1) 作業を1タスク=1目的に分解し、docs/GPT-INSTRUCTIONS.md の形式で
-   alebeu1839-lab/ai-development-hub の agent-queue ブランチ queue/inbox/<id>.json に作成する。
+   alebeu1839-lab/ai-agent-hub の agent-queue ブランチ queue/inbox/<id>.json に作成する。
    まず調査が必要なら mode=plan、実装なら mode=implement。秘密情報は絶対に書かない。
 2) 報告を求められたら queue/status.md と queue/results/<id>/report.md を読み、
    完了/未完了/要承認事項を要約する。warnings と error を必ず伝える。

@@ -33,11 +33,15 @@
 - Addnessゴール: https://www.addness.com/goals/67d0ab23-6267-4d13-aff9-359126fb62e1 （名称変更と次の検証方針を2026-11-20に記録）。
 
 ## 最新状況（作業したAIが更新する）
-- **更新者**: GPT（GitHubの確認・記録）
+- **更新者**: Claude Code（クラウドセッション）
 - **最終確認**: 2026-11-20 JST
-- **作業ブランチ/HEAD**: ローカルClaude Code側は未確認
-- **何をした**: GitHubリポジトリの改名確認。共有引き継ぎファイルを作成。
-- **何ができた**: GPTがGitHubから既知の事実と未検証項目を読めるようにした。
-- **テスト結果**: このファイル作成時点では自動連携の実行テストはしていない。
-- **残る問題**: Claude Code側のローカル進捗・設定・実行証跡を未回収。
-- **次に何をする**: Claude Codeがローカル状況と最新テスト証跡をここへ反映。その後、GPTが状態を照合して最小のE2Eテストを選定。
+- **作業ブランチ**: `claude/funny-johnson-d34brp`（`feat/claude-code-dispatch` をマージしたうえで追加。main は未変更）
+- **何をした**: Addness受信ブリッジを追加（`hub/addness.py`, `hub/addness_intake.py`）。Addnessの【Claude Code PC】タスク → claim → 既存キュー → 既存ランナー（Claude Code→Codex）→ 同じAddnessタスクへ結果・レビュー判定・SHA・未解決事項を書戻し。レビュー差し戻しループをプロンプトに明記。Windows起動スクリプト（`start-addness-cycle.ps1`, 承認制の `register-addness-schedule.ps1`）。手順書 `docs/ADDNESS-INTAKE.md`。リポジトリ改名に合わせURLを更新。
+- **テスト結果**: `python -m unittest discover -s tests -t .` 44件合格。`python scripts/e2e_isolated.py` PASS（証跡: `docs/evidence/e2e-isolated-20261120.md`）。いずれも偽のAddness・偽のclaude/codex・ローカルbare repoでの隔離検証。
+- **残る問題（確認済みでないもの）**:
+  1. 実PCでの実機検証が未実施（本物のAddness MCP・Claude Code・Codexでの往復）。
+  2. PCの既存 `dispatch.ps1` の中身を未確認（クラウドから読めない）。二重受信を避けるため、どちらか一方を受信担当にする判断が必要。
+  3. 今回の実装はCodexへ委譲できていない（このクラウド環境にCodex CLI・ChatGPTログインがない）。Claude Codeが直接実装した。
+  4. 実行中タスクへの `[ai-agent-hub:stop]` は次の受信を止めるだけで、実行中の処理は止めない（止めるには PAUSE）。
+  5. 他PCがclaimしたまま止まったタスクは自動で引き継がない（安全側）。手動でclaimコメントを消すか再登録。
+- **次に何をする**: 本人がPCで `docs/ADDNESS-INTAKE.md` の「PCへの導入」を実施 → 練習タスク fe511787 で1回手動サイクル → 結果を確認後に自動化を承認。

@@ -1,6 +1,6 @@
 # AI Agent Hub - one-shot setup for the Windows runner PC.
 # Paste into PowerShell (normal user, not admin):
-#   irm https://raw.githubusercontent.com/alebeu1839-lab/ai-development-hub/feat/claude-code-dispatch/scripts/windows/bootstrap.ps1 | iex
+#   irm https://raw.githubusercontent.com/alebeu1839-lab/ai-agent-hub/feat/claude-code-dispatch/scripts/windows/bootstrap.ps1 | iex
 #
 # What it does (safe to re-run):
 #   1. installs missing tools (Git, Python, Node.js, GitHub CLI via winget; Claude Code + Codex via npm)
@@ -13,7 +13,7 @@
 # Continue (not Stop): PowerShell 5.1 turns native stderr into terminating errors under Stop.
 $ErrorActionPreference = "Continue"
 $env:PYTHONUTF8 = "1"
-$Repo   = "https://github.com/alebeu1839-lab/ai-development-hub.git"
+$Repo   = "https://github.com/alebeu1839-lab/ai-agent-hub.git"
 $Branch = "feat/claude-code-dispatch"
 $Dir    = Join-Path $env:USERPROFILE "ai-development-hub"
 
@@ -87,5 +87,5 @@ Step "5/5 Check + run one task"
 .\scripts\windows\check-runner.ps1
 python -m unittest discover -s tests -t . 2>&1 | Select-Object -Last 3
 .\scripts\windows\start-runner.ps1 -Once
-Write-Host "`nDone. Result: https://github.com/alebeu1839-lab/ai-development-hub/tree/agent-queue/queue/results" -ForegroundColor Green
+Write-Host "`nDone. Result: https://github.com/alebeu1839-lab/ai-agent-hub/tree/agent-queue/queue/results" -ForegroundColor Green
 Write-Host "To keep it running: .\scripts\windows\start-runner.ps1   (Ctrl+C to stop)"

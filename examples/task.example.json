@@ -2,7 +2,7 @@
   "id": "20261119-hello-01",
   "title": "Add a greeting helper",
   "instructions": "Create hub_examples/hello.py with greet(name) -> 'Hello, <name>!' and a unittest. Delegate implementation and tests to Codex, then have Codex review.",
-  "repo": "alebeu1839-lab/ai-development-hub",
+  "repo": "alebeu1839-lab/ai-agent-hub",
   "base_branch": "main",
   "mode": "implement",
   "requested_by": "chatgpt",
