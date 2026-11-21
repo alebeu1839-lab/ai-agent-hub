@@ -7,13 +7,14 @@
   "mode": "implement",
   "requested_by": "addness:32afbc96-90bb-4ae0-bb43-a8864b1c9aa4",
   "acceptance": [],
-  "created_at": "2026-11-21T13:04:35Z",
   "_state": {
     "authorised": "submitter verification disabled in config",
-    "status": "running",
-    "runner": "windows-myaddness",
+    "status": "done",
+    "runner": null,
     "claimed_at": "2026-11-21T13:04:46Z",
-    "updated_at": "2026-11-21T13:04:46Z",
-    "attempts": 1
+    "updated_at": "2026-11-21T13:20:36Z",
+    "attempts": 1,
+    "session_id": "423abc17-ec26-44dc-a262-cfe1fb0ea8e4",
+    "error": null
   }
 }
