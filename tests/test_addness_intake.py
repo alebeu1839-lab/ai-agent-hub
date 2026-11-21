@@ -191,6 +191,57 @@ class AddnessE2E(unittest.TestCase):
         self.assertEqual(b.cycle(r)["writeback"], [PRACTICE])
         self.assertEqual(sum(1 for c in self.comments(PRACTICE) if c.startswith("[ai-agent-hub:done")), 1)
 
+    def test_pass_done_completes_task_when_enabled(self):
+        self.env.cfg["addness"]["complete_on_pass"] = True
+        b, r = self.bridge()
+        out = b.cycle(r)
+        self.assertEqual(out["status"], "ok", out)
+        self.assertEqual(self.goals()[PRACTICE]["status"], "DONE")
+        history = (Path(self.env.cfg["state_dir"]) / "history.jsonl").read_text(encoding="utf-8")
+        self.assertIn('"event": "completed"', history)
+        self.assertIn("Addnessタスク自動完了: 完了", self.comments(PRACTICE)[-1])
+
+    def test_fail_verdict_does_not_complete_task(self):
+        self.env.cfg["addness"]["complete_on_pass"] = True
+        b, r = self.bridge()
+        b.intake()
+        self.assertEqual(r.run_once(), "done")
+        from unittest import mock
+        with mock.patch("hub.addness_intake._review_verdict", return_value="FAIL"):
+            self.assertEqual(b.writeback(), [PRACTICE])
+        self.assertEqual(self.goals()[PRACTICE]["status"], "NONE")
+
+    def test_complete_on_pass_disabled_keeps_task_open(self):
+        self.env.cfg["addness"]["complete_on_pass"] = False
+        b, r = self.bridge()
+        self.assertEqual(b.cycle(r)["status"], "ok")
+        self.assertEqual(self.goals()[PRACTICE]["status"], "NONE")
+
+    def test_completion_error_is_recorded_without_rewriting_detail(self):
+        self.env.cfg["addness"]["complete_on_pass"] = True
+        b, r = self.bridge()
+        append_detail = b.client.append_detail
+        writes = []
+
+        def count_detail(gid, detail):
+            writes.append(detail)
+            append_detail(gid, detail)
+
+        b.client.append_detail = count_detail
+        b.client.complete_task = lambda gid: (_ for _ in ()).throw(AddnessError("completion unavailable"))
+        first = b.cycle(r)
+        self.assertEqual(first["status"], "ok", first)
+        self.assertEqual(len(writes), 1)
+        second = b.cycle(r)
+        self.assertEqual(second["status"], "ok", second)
+        self.assertEqual(len(writes), 1)
+        self.assertEqual(self.goals()[PRACTICE]["status"], "NONE")
+        history = (Path(self.env.cfg["state_dir"]) / "history.jsonl").read_text(encoding="utf-8")
+        self.assertIn('"event": "complete_failed"', history)
+        ledger = json.loads((Path(self.env.cfg["state_dir"]) / "addness" / "ledger.json").read_text(encoding="utf-8"))
+        self.assertTrue(ledger[PRACTICE]["completion_attempted"])
+        self.assertEqual(ledger[PRACTICE]["completion"], "complete_failed")
+
     def test_pause_stops_everything(self):
         b, r = self.bridge()
         (Path(self.env.cfg["state_dir"]) / "PAUSE").write_text("owner stop")

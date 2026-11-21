@@ -43,6 +43,11 @@ STOP_RE = re.compile(r"^\s*\[ai-agent-hub:stop\]\s*$", re.M)
 TERMINAL = ("done", "failed")
 
 
+def _review_verdict(report: str) -> str:
+    m = re.search(r"##\s*Review verdict\s*\n+\s*\**(PASS|FAIL)", report, re.I)
+    return m.group(1).upper() if m else "未判定"
+
+
 def task_id_for(goal_id: str) -> str:
     return f"addness-{goal_id}"
 
@@ -267,11 +272,9 @@ class AddnessBridge:
         self.history("submitted", goal=g["id"], task=t["id"], result=res)
 
     # ------------------------------------------------------------------ write-back
-    def render_writeback(self, gid: str, state: str, result: dict, report: str) -> tuple[str, str]:
-        verdict = "未判定"
-        m = re.search(r"##\s*Review verdict\s*\n+\s*\**(PASS|FAIL)", report, re.I)
-        if m:
-            verdict = m.group(1).upper()
+    def render_writeback(self, gid: str, state: str, result: dict, report: str,
+                         auto_complete: bool = False, completion_result: str = "未実施") -> tuple[str, str]:
+        verdict = _review_verdict(report)
         g = result.get("git") or {}
         tests = _section(report, "Verification") or "記録なし"
         owner = _section(report, "Needs owner action") or "none"
@@ -284,6 +287,7 @@ class AddnessBridge:
             f"### {now_iso()} AI Agent Hub 実行結果（{'確認待ち' if waiting else '完了報告'}）",
             f"- キュー状態: `{status}`（試行 {result.get('attempt')}回、{result.get('duration_sec')}秒、ランナー `{self.me}`）",
             f"- レビュー判定（Claude Code）: **{verdict}**",
+            f"- Addnessタスクの自動完了: {'実施対象（詳細書戻し後に実行）' if auto_complete else '対象外'}",
             f"- Codex呼び出し: {len(codex)}回 — " + (", ".join(
                 f"{c.get('tool')}:{'ok' if c.get('exit_code') == 0 else c.get('error_kind')}" for c in codex) or "なし"),
             f"- 作業ブランチ: `{branch}`（push: {'済' if g.get('pushed') else '未'}）／コミットSHA: `{head}`",
@@ -296,10 +300,10 @@ class AddnessBridge:
                   _quote("なし" if owner.strip().lower() in ("none", "なし", "-") else owner)]
         lines += ["", f"_詳細レポート: キューブランチ `{self.cfg['queue_branch']}` の "
                       f"`{self.cfg['queue_dir']}/results/{task_id_for(gid)}/report.md`。マージ・デプロイはしていません。"
-                      "タスクの完了は担当者が判断してください。_"]
+                      "_"]
         comment = (f"[ai-agent-hub:done task={task_id_for(gid)} status={status} verdict={verdict} sha={head}]\n"
                    f"AI Agent Hubの処理が終わりました（{'確認待ち' if waiting else 'レビュー合格'}）。"
-                   "結果・テスト・コミットSHA・未解決事項はタスク詳細に追記しました。")
+                   f"結果・テスト・コミットSHA・未解決事項はタスク詳細に追記しました。Addnessタスク自動完了: {completion_result}。")
         return redact("\n".join(lines)), redact(comment)
 
     def writeback(self) -> list[str]:
@@ -315,10 +319,29 @@ class AddnessBridge:
             rdir = self.queue.root / "results" / tid
             result = json.loads((rdir / "result.json").read_text(encoding="utf-8")) if (rdir / "result.json").exists() else {}
             report = (rdir / "report.md").read_text(encoding="utf-8") if (rdir / "report.md").exists() else ""
-            detail, comment = self.render_writeback(gid, state, result, report)
+            auto_complete = (self.a.get("complete_on_pass", False) is True and state == "done"
+                             and _review_verdict(report) == "PASS")
+            detail, _ = self.render_writeback(gid, state, result, report, auto_complete)
             if not led.get("detail_written"):
                 self.client.append_detail(gid, detail)
                 self.ledger.set(gid, detail_written=True)
+            completion_result = "対象外"
+            if auto_complete and not led.get("completion_attempted"):
+                # Persist before the external call: completion is attempted at most once per goal.
+                self.ledger.set(gid, completion_attempted=True)
+                try:
+                    self.client.complete_task(gid)
+                    completion_result = "完了"
+                    self.ledger.set(gid, completion="completed")
+                    self.history("completed", goal=gid, task=tid)
+                except Exception as e:  # completion must not undo a successful detail writeback
+                    error = redact(str(e))[:200] or type(e).__name__
+                    completion_result = "失敗（" + error + "）"
+                    self.ledger.set(gid, completion="complete_failed", completion_error=error)
+                    self.history("complete_failed", goal=gid, task=tid, error=error)
+            elif auto_complete:
+                completion_result = led.get("completion", "試行済み")
+            _, comment = self.render_writeback(gid, state, result, report, auto_complete, completion_result)
             self.client.add_comment(gid, comment)
             self.ledger.set(gid, state="written_back", result=result.get("status", state),
                             head=(result.get("git") or {}).get("head"))

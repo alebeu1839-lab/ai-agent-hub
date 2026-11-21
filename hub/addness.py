@@ -8,9 +8,9 @@ Two interchangeable clients expose the same small surface:
   operation needs. It reuses the Addness MCP login the owner already has in Claude Code
   on the PC, so no Addness token is stored in this repository or config.
 
-Every write the runner makes is a comment carrying a machine-readable marker
-(``[ai-agent-hub:...]``) or an append to the goal detail. Nothing is deleted, completed,
-moved or reassigned: completing a task stays with the owner.
+The runner writes marked comments (``[ai-agent-hub:...]``) and appends to goal details.
+It never deletes, moves or reassigns goals. A task can be completed after a verified PASS
+when explicitly enabled in the Addness intake configuration.
 """
 from __future__ import annotations
 
@@ -97,11 +97,21 @@ class FakeAddnessClient:
         g["body"] = (g.get("body") or "").rstrip() + "\n\n" + markdown.strip() + "\n"
         self._save(data)
 
+    def complete_task(self, goal_id: str) -> None:
+        self._check()
+        data = self._load()
+        g = data["goals"].get(goal_id)
+        if not g:
+            raise AddnessError(f"goal not found: {goal_id}")
+        g["status"] = "DONE"
+        self._save(data)
+
 
 # --------------------------------------------------------------------------- claude + MCP
 CLIENT_SYSTEM = """You are a strict data-transport helper for the AI Agent Hub runner.
 Call exactly the Addness MCP tools named in the request, with exactly the given arguments.
-Never call any other tool, never complete/delete/move/assign goals, never invent data.
+Never call any other tool; never delete/move/assign goals. You may complete a goal only when
+the request explicitly asks you to call complete_goal for the given goal_id. Never invent data.
 Reply with ONLY one line: JSON wrapped as <<<JSON {...} JSON>>> . If a tool fails, reply
 <<<JSON {"error": "<short reason>", "auth": true|false} JSON>>> where auth=true when the
 failure is a login / authorization / expired-token problem."""
@@ -212,6 +222,13 @@ class ClaudeMcpAddnessClient:
         req = (f"Call {self._tool('write_goal_detail')} with goal_id=\"{goal_id}\", mode=\"append\" and "
                f"this exact markdown (verbatim):\n-----\n{markdown}\n-----\nReturn {{\"ok\": true}}.")
         self._call(["write_goal_detail"], req)
+
+    def complete_task(self, goal_id: str) -> None:
+        if not UUID_RE.match(goal_id):
+            raise AddnessError("invalid goal id")
+        req = (f"Call {self._tool('complete_goal')} with goal_id=\"{goal_id}\". "
+               "Return {\"ok\": true}.")
+        self._call(["complete_goal"], req)
 
 
 def make_client(cfg: dict, state_dir: Path):

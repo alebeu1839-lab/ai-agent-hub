@@ -70,6 +70,7 @@
   "addness": {
     "_comment": "Addness intake (docs/ADDNESS-INTAKE.md). Uses Claude Code's own Addness MCP login on this PC; no Addness token here. Keep enabled=false until the isolated test passed.",
     "enabled": false,
+    "complete_on_pass": true,
     "client": "claude_mcp",
     "mcp_server_name": "addness",
     "title_prefix": "【Claude Code PC】",

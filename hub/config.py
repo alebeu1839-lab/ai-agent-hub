@@ -42,6 +42,7 @@ DEFAULTS = {
     # Addness intake (hub/addness_intake.py). Off unless enabled in the local config.
     "addness": {
         "enabled": False,
+        "complete_on_pass": False,
         "client": "claude_mcp",          # claude_mcp (real, via Claude Code's Addness MCP) | fake
         "fake_store": "",
         "mcp_server_name": "addness",

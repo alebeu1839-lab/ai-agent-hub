@@ -14,8 +14,8 @@ hub/addness_intake.py  ③ 書戻し: 結果・レビュー判定・テスト・
 
 Addnessへのアクセスは `claude -p` から **PCのClaude Codeに既に登録済みのAddness MCP接続**を使う
 （`hub/addness.py` の `ClaudeMcpAddnessClient`）。Addnessのトークンはリポジトリにも設定にも置かない。
-使うMCPツールは操作ごとに1つだけ許可（`search_goals` / `get_goal` / `add_comment` / `write_goal_detail`）。
-タスクの完了・削除・移動・担当変更はしない（完了は担当者が判断）。
+使うMCPツールは操作ごとに1つだけ許可（`search_goals` / `get_goal` / `add_comment` / `write_goal_detail` / `complete_goal`）。
+削除・移動・担当変更はしない。`complete_on_pass` が `true` の場合、キュー状態が `done` でClaude Codeレビューが `PASS` のタスクだけ、結果の詳細を書き戻した後に自動完了する。既定値は `false`（設定例は `true`）。
 
 ## 受信ルール（`config/hub.config.json` の `addness`）
 
