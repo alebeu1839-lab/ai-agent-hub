@@ -25,11 +25,22 @@ if mode == "usage_limit":
 if mode == "auth":
     print("Error: Not logged in. Run `codex login`.", file=sys.stderr); sys.exit(1)
 import time; time.sleep(int(os.environ.get("FAKE_CODEX_SLEEP", "0")))
-prompt = args[-1]
+# Real `codex exec -` reads the prompt from stdin (the bridge must not pass it as an argument).
+assert args[-1] == "-", "prompt must be passed on stdin via '-', not as an argument"
+sys.stdin.reconfigure(encoding="utf-8")
+prompt = sys.stdin.read().replace("\r\n", "\n")
+record = os.environ.get("FAKE_CODEX_RECORD")
+if record:
+    import json
+    with open(record, "w", encoding="utf-8") as f:
+        json.dump({"argv": args, "prompt": prompt,
+                   "codex_windows_registered_core_present": "CODEX_WINDOWS_REGISTERED_CORE" in os.environ},
+                  f, ensure_ascii=False)
 if sandbox == "workspace-write":
-    with open(os.path.join(cd, "CODEX_WAS_HERE.md"), "w") as f:
+    with open(os.path.join(cd, "CODEX_WAS_HERE.md"), "w", encoding="utf-8") as f:
         f.write("# Written by fake Codex\n\n" + prompt.splitlines()[-1][:200] + "\n")
-    msg = "Implemented: created CODEX_WAS_HERE.md. Verified by reading the file back."
+    msg = os.environ.get("FAKE_CODEX_REPLY") or \
+        "Implemented: created CODEX_WAS_HERE.md. Verified by reading the file back."
 else:
     flag = os.path.join(cd, ".git", "fake_review_count")
     n = int(open(flag).read()) if os.path.exists(flag) else 0
@@ -38,5 +49,5 @@ else:
         msg = "Review: marker file lacks a test. VERDICT: REQUEST_CHANGES"
     else:
         msg = "Review: no blocking issues found. VERDICT: APPROVE"
-open(last, "w").write(msg)
+open(last, "w", encoding="utf-8").write(msg)
 print("fake codex done")

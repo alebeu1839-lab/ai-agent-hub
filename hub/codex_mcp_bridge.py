@@ -86,13 +86,24 @@ def classify(text: str) -> str | None:
 _PREFLIGHT: tuple[bool, str] | None = None
 
 
+def codex_environment() -> dict[str, str]:
+    """Build the child environment without the Codex app's registered-core marker.
+
+    When inherited from the Codex desktop app, this marker makes standalone
+    ``codex exec`` try the app-registered runtime and fail to provision it.
+    """
+    env = subscription_env()
+    env.pop("CODEX_WINDOWS_REGISTERED_CORE", None)
+    return env
+
+
 def preflight(codex: str) -> tuple[bool, str]:
     """Fail fast if Codex is missing or not logged in (otherwise `codex exec` can hang retrying)."""
     global _PREFLIGHT
     if _PREFLIGHT is None:
         try:
             p = subprocess.run([*([sys.executable] if codex.endswith(".py") else []), codex, "login", "status"], stdin=subprocess.DEVNULL, capture_output=True,
-                               env=subscription_env(),
+                               env=codex_environment(),
                                text=True, encoding="utf-8", errors="replace", timeout=30)
             out = (p.stdout + p.stderr).strip()
             subscription = "chatgpt" in out.lower() and "api key" not in out.lower()
@@ -164,10 +175,13 @@ def run_codex(tool: str, args: dict) -> tuple[str, bool]:
         model = os.environ.get("CODEX_BRIDGE_MODEL")
         if model:
             cmd += ["--model", model]
-        cmd.append(prompt)
+        # The prompt goes on stdin ("-"), never on the command line: on Windows `codex`
+        # resolves to codex.cmd and cmd.exe drops everything after the first newline of an
+        # argument, so ROLE_PREFIX + task would arrive truncated (only the role sentence).
+        cmd.append("-")
         started = time.time()
         try:
-            proc = subprocess.run(cmd, cwd=ws, stdin=subprocess.DEVNULL, capture_output=True, env=subscription_env(),
+            proc = subprocess.run(cmd, cwd=ws, input=prompt, capture_output=True, env=codex_environment(),
                                   text=True, encoding="utf-8", errors="replace", timeout=timeout)
             rc, out, err = proc.returncode, proc.stdout, proc.stderr
         except FileNotFoundError:
@@ -218,7 +232,21 @@ def handle(msg: dict) -> dict | None:
     return {"jsonrpc": "2.0", "id": mid, "result": result}
 
 
+def setup_stdio():
+    """MCP stdio is UTF-8 JSON lines. Windows pipes default to cp932, which garbles Japanese
+    requests and makes writes fail on characters cp932 lacks (the reply is then lost).
+    Returns the protocol output stream; sys.stdout is pointed at stderr so stray prints can
+    never corrupt the protocol channel."""
+    sys.stdin.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdout.reconfigure(encoding="utf-8", errors="strict", newline="\n")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    proto = sys.stdout
+    sys.stdout = sys.stderr
+    return proto
+
+
 def main() -> None:
+    proto = setup_stdio()
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -229,8 +257,13 @@ def main() -> None:
             continue
         resp = handle(msg)
         if resp is not None:
-            sys.stdout.write(json.dumps(resp, ensure_ascii=False) + "\n")
-            sys.stdout.flush()
+            try:
+                out = json.dumps(resp, ensure_ascii=False)
+                out.encode("utf-8")
+            except UnicodeEncodeError:  # e.g. lone surrogates: fall back to \u escapes
+                out = json.dumps(resp, ensure_ascii=True)
+            proto.write(out + "\n")
+            proto.flush()
 
 
 if __name__ == "__main__":

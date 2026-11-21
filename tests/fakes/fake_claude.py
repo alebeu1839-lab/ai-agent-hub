@@ -29,7 +29,7 @@ prompt = sys.stdin.read()
 assert prompt.strip(), "prompt must arrive on stdin"
 implement = "mcp__codex__codex_implement" in allowed
 env = {**os.environ, **srv["env"]}
-p = subprocess.Popen([srv["command"], *srv["args"]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, env=env)
+p = subprocess.Popen([srv["command"], *srv["args"]], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding="utf-8", env=env)
 def rpc(i, method, params=None):
     p.stdin.write(json.dumps({"jsonrpc": "2.0", "id": i, "method": method, "params": params or {}}) + "\n"); p.stdin.flush()
     return json.loads(p.stdout.readline())
