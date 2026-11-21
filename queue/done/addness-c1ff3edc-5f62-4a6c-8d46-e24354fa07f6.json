@@ -7,13 +7,14 @@
   "mode": "implement",
   "requested_by": "addness:c1ff3edc-5f62-4a6c-8d46-e24354fa07f6",
   "acceptance": [],
-  "created_at": "2026-11-21T06:00:07Z",
   "_state": {
     "authorised": "submitter verification disabled in config",
-    "status": "running",
-    "runner": "windows-main",
+    "status": "done",
+    "runner": null,
     "claimed_at": "2026-11-21T06:00:14Z",
-    "updated_at": "2026-11-21T06:00:14Z",
-    "attempts": 1
+    "updated_at": "2026-11-21T06:01:23Z",
+    "attempts": 1,
+    "session_id": "f10230a5-8c8c-452d-af89-37f612bd6271",
+    "error": null
   }
 }
