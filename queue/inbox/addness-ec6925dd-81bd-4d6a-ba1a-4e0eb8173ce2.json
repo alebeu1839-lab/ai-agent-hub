@@ -1,0 +1,11 @@
+{
+  "id": "addness-ec6925dd-81bd-4d6a-ba1a-4e0eb8173ce2",
+  "title": "【Claude Code PC】練習2：無人受信でdocs/PRACTICE.mdに1行追記",
+  "instructions": "Addness task: 【Claude Code PC】練習2：無人受信でdocs/PRACTICE.mdに1行追記\nAddness goal id: ec6925dd-81bd-4d6a-ba1a-4e0eb8173ce2\n\n## Ideal (definition of done)\nPCの受信処理（hub/addness_intake.py）がボタン操作なしで本タスクを受信し、Claude Code→Codexで docs/PRACTICE.md に1行追記、レビューPASS、agent/addness-<id> ブランチにコミット、同じタスクへSHA付きで書き戻される。2回目の実行では何も起きない（重複しない）。\n\n## Task detail\n## 開発依頼\n\n- **対象リポジトリ**：AI Agent Hub `alebeu1839-lab/ai-agent-hub`、ベースブランチ `claude/funny-johnson-d34brp`。結果は `agent/addness-<id>` ブランチに出す。main・本番・My Addnessは変更しない。\n- **依頼内容**：`docs/PRACTICE.md` を作り（無ければ）、末尾に次の1行だけを追記する：`- 2026-11-21 無人受信の練習2（Addness ec6925dd）`。ほかのファイルは変更しない。\n- **完了条件**：①受信処理がボタン操作なしで本タスクを受信 ②Claude Code→Codexの実依頼 ③Codexの結果返却 ④Claude Codeのレビュー判定 ⑤コミットSHA ⑥本タスクへの書き戻し ⑦2回目の実行で重複しないこと。\n- **制約**：マージ・デプロイ・公開・課金・外部送信なし。認証や判断が必要なら止めて「確認待ち」を記録。\n\n実行指示:intake-trial-1",
+  "repo": "alebeu1839-lab/ai-agent-hub",
+  "base_branch": "claude/funny-johnson-d34brp",
+  "mode": "implement",
+  "requested_by": "addness:ec6925dd-81bd-4d6a-ba1a-4e0eb8173ce2",
+  "acceptance": [],
+  "created_at": "2026-11-21T05:46:02Z"
+}
