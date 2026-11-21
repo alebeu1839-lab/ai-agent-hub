@@ -1,10 +1,10 @@
 # Agent queue status
 
-_updated 2026-11-21T10:14:18Z_
+_updated 2026-11-21T10:14:25Z_
 
 | state | id | title | attempts | updated | result |
 |---|---|---|---|---|---|
-| inbox | addness-8c9c4a7b-ad83-4762-a7f5-f01a673fbf99 | 【Claude Code PC】隔離受信ワーカーの基盤を実装・合成テスト | 0 |  |  |
+| running | addness-8c9c4a7b-ad83-4762-a7f5-f01a673fbf99 | 【Claude Code PC】隔離受信ワーカーの基盤を実装・合成テスト | 1 | 2026-11-21T10:14:24Z |  |
 | failed | 20261119-windows-01 | Windows runner verification with real Codex | 0 | 2026-11-21T05:46:10Z | results/20261119-windows-01/report.md |
 | done | 20261119-smoke-01 | Smoke test: redact regression tests | 1 | 2026-11-19T05:30:43Z | results/20261119-smoke-01/report.md |
 | done | addness-110a44bc-9a0f-4050-8bfa-31a448ca9a6e | 【Claude Code PC】練習4：自動起動だけでdocs/PRACTICE.mdに1行追記 | 1 | 2026-11-21T06:47:48Z | results/addness-110a44bc-9a0f-4050-8bfa-31a448ca9a6e/report.md |
