@@ -149,12 +149,34 @@ class ClaudeMcpAddnessClient:
         except (json.JSONDecodeError, IndexError):
             outer, text = {}, ""
         m = re.search(r"<<<JSON\s*(\{.*\})\s*JSON>>>", text, re.S)
-        if proc.returncode != 0 or not m:
+        data = None
+        if m:
+            try:
+                data = json.loads(m.group(1))
+            except json.JSONDecodeError:
+                pass
+        elif proc.returncode == 0:
+            stripped = text.strip()
+            try:
+                candidate = json.loads(stripped)
+            except json.JSONDecodeError:
+                candidate = None
+            if isinstance(candidate, dict):
+                data = candidate
+            else:
+                fenced = re.search(r"```(?:json)?\s*(.*?)```", text, re.S | re.I)
+                if fenced:
+                    try:
+                        candidate = json.loads(fenced.group(1).strip())
+                    except json.JSONDecodeError:
+                        candidate = None
+                    if isinstance(candidate, dict):
+                        data = candidate
+        if proc.returncode != 0 or not isinstance(data, dict):
             low = blob.lower()
             if any(k in low for k in AUTH_MARKERS):
                 raise AddnessAuthError(redact(blob.strip())[-400:])
             raise AddnessError(f"bad Addness answer (exit {proc.returncode}): {redact(blob.strip())[-400:]}")
-        data = json.loads(m.group(1))
         if data.get("error"):
             if data.get("auth"):
                 raise AddnessAuthError(str(data["error"])[:400])

@@ -11,9 +11,10 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from hub import config as hubconfig
-from hub.addness import AddnessAuthError, ClaudeMcpAddnessClient, FakeAddnessClient
+from hub.addness import AddnessAuthError, AddnessError, ClaudeMcpAddnessClient, FakeAddnessClient
 from hub.addness_intake import AddnessBridge, CLAIM_RE, task_id_for
 from hub.runner import Runner
 from tests.test_runner import FAKES, Env, sh
@@ -268,6 +269,49 @@ class ClaudeMcpClientParsing(unittest.TestCase):
         self.answer({"id": OTHER, "title": "t"})
         with self.assertRaises(Exception):
             self.client.get_task(PRACTICE)
+
+
+class ClaudeMcpClientCallParsing(unittest.TestCase):
+    """Exercise `_call` output parsing without invoking the CLI."""
+
+    def setUp(self):
+        self._td = tempfile.TemporaryDirectory()
+        self.tmp = Path(self._td.name)
+        cfg = {"claude": {"bin": "claude"},
+               "addness": {"mcp_server_name": "addness"}}
+        self.client = ClaudeMcpAddnessClient(cfg, self.tmp)
+
+    def tearDown(self):
+        self._td.cleanup()
+
+    def call_with_result(self, text, returncode=0):
+        stdout = json.dumps({"type": "result", "subtype": "success",
+                             "is_error": False, "result": text}) + "\n"
+        proc = subprocess.CompletedProcess(["claude"], returncode, stdout, "")
+        with patch("hub.addness.subprocess.run", return_value=proc):
+            return self.client._call(["search_goals"], "request")
+
+    def test_wrapped_json(self):
+        self.assertEqual(self.call_with_result('<<<JSON {"items": []} JSON>>>'), {"items": []})
+
+    def test_bare_json(self):
+        self.assertEqual(self.call_with_result('{"items": [{"id": "x"}]}'),
+                         {"items": [{"id": "x"}]})
+
+    def test_fenced_json(self):
+        self.assertEqual(self.call_with_result('```json\n{"items": []}\n```'), {"items": []})
+
+    def test_plain_prose_rejected(self):
+        with self.assertRaises(AddnessError):
+            self.call_with_result("No JSON was returned.")
+
+    def test_bare_auth_error(self):
+        with self.assertRaises(AddnessAuthError):
+            self.call_with_result('{"error": "expired", "auth": true}')
+
+    def test_nonzero_returncode_rejected_even_with_bare_json(self):
+        with self.assertRaises(AddnessError):
+            self.call_with_result('{"items": []}', returncode=1)
 
 
 if __name__ == "__main__":
