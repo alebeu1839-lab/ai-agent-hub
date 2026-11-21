@@ -1,7 +1,7 @@
 # AI Agent Hub — Codex 向けルール
 
 正本は本家Addnessナレッジ「AIの役割分担（GPT・Claude Code・Codex）」（ID `1df7df07-8d47-4881-808f-12ea25effc8e`）。
-CodexはAddnessを読まない・書かないので、最新版はClaude Codeが指示として渡す。下は revision 3（2026-11-20）の控え。
+CodexはAddnessを読まない・書かないので、最新版はClaude Codeが指示として渡す。下は revision 8（2026-11-20T11:48Z）の控え。
 Claude Codeから新しい revision が渡されたら、そちらに従う。
 
 ## あなた（Codex）の役割
@@ -21,3 +21,11 @@ Claude Codeから新しい revision が渡されたら、そちらに従う。
 
 ## Claude Codeが不在の時
 許可済みの範囲だけ進め、`docs/HANDOFF.md` に実行ID・ブランチ/commit・変更範囲・テスト・残課題・次の一手を記録する（Addnessへは書かない）。
+
+## タスク・セッションの単位
+- 原則1タスク1セッション。引継ぎは会話全文でなく、タスク本文・ナレッジ版・対象ファイル・docs/HANDOFF.md だけで行う。
+- 古いセッションの削除は本人の指示・承認がある時だけ。
+
+## 共有の扱い
+- 正本に保存されたことと、各AIに反映・受領確認できたことは別の状態。受領の証跡が取れるまで「反映済み」と言わない。
+- 受領確認を求められたら、ファイルを変えずに指定の形式（例: RULES_ACK revision=N）で答える。
