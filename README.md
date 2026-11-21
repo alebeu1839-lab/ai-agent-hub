@@ -1,4 +1,4 @@
-# AI Development Hub
+# AI Agent Hub
 
 ChatGPT（司令塔）→ Claude Code（開発責任者）→ Codex（実装・検証）の自動連携ランナー。
 
