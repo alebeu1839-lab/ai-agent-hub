@@ -1,0 +1,23 @@
+{
+  "_comment": "Isolated My Addness worker. Separate config/state/lock/queue from the default hub. No secrets here.",
+  "worker_id": "my-addness-isolated",
+  "enabled": false,
+  "execute_enabled": false,
+  "target_repo": "alebeu1839-lab/-my-addness",
+  "target_clone_url": "https://github.com/alebeu1839-lab/-my-addness.git",
+  "target_branch": "codex/today-bulk-selection",
+  "target_pr": 2,
+  "denied_branches": ["main", "master", "production", "release/*", "gh-pages"],
+  "denied_prs": [3],
+  "source_goal_id": "afe1fa15-e2d2-41fc-a6c0-86b8a9eefcf2",
+  "bridge_goal_id": "655c2d75-6c62-4c43-98d5-bd61c5aad9f9",
+  "state_dir": "state-isolated/my-addness",
+  "lease_ttl_sec": 3600,
+  "addness": {
+    "client": "claude_mcp",
+    "fake_store": "",
+    "mcp_server_name": "addness",
+    "claude_timeout_sec": 300,
+    "model": null
+  }
+}

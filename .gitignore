@@ -3,3 +3,5 @@ state/
 config/hub.config.json
 __pycache__/
 *.pyc
+state-isolated/
+config/my-addness-worker.json
