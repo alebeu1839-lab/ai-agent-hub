@@ -6,5 +6,15 @@
   "base_branch": "feat/claude-code-dispatch",
   "mode": "implement",
   "requested_by": "chatgpt",
-  "acceptance": ["codex_test ran on Windows", "codex_review returned a verdict", "report lists every Codex call result"]
+  "acceptance": [
+    "codex_test ran on Windows",
+    "codex_review returned a verdict",
+    "report lists every Codex call result"
+  ],
+  "_state": {
+    "authorised": "submitter verification disabled in config",
+    "status": "rejected",
+    "error": "invalid task: repo not in allowlist: 'alebeu1839-lab/ai-development-hub'",
+    "updated_at": "2026-11-21T05:46:10Z"
+  }
 }
