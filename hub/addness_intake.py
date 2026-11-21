@@ -48,6 +48,11 @@ def _review_verdict(report: str) -> str:
     return m.group(1).upper() if m else "未判定"
 
 
+def _no_owner_action(owner: str) -> bool:
+    """True when the report's "Needs owner action" says there is nothing to do (e.g. "None.", "なし。...")."""
+    return re.match(r"\s*(none|なし|-)(?![a-z])", owner or "", re.I) is not None
+
+
 def task_id_for(goal_id: str) -> str:
     return f"addness-{goal_id}"
 
@@ -280,7 +285,7 @@ class AddnessBridge:
         owner = _section(report, "Needs owner action") or "none"
         codex = result.get("codex_calls") or []
         status = result.get("status", state)
-        waiting = status != "done" or verdict != "PASS" or owner.strip().lower() not in ("none", "なし", "-")
+        waiting = status != "done" or verdict != "PASS" or not _no_owner_action(owner)
         head = g.get("head") or "-"
         branch = g.get("work_branch") or "-"
         lines = [
@@ -297,7 +302,7 @@ class AddnessBridge:
         for w in result.get("warnings") or []:
             lines.append(f"- 警告: {w}")
         lines += ["", "**テスト・検証**", "", _quote(tests), "", "**未解決事項／本人の操作が必要なこと**", "",
-                  _quote("なし" if owner.strip().lower() in ("none", "なし", "-") else owner)]
+                  _quote("なし" if _no_owner_action(owner) else owner)]
         lines += ["", f"_詳細レポート: キューブランチ `{self.cfg['queue_branch']}` の "
                       f"`{self.cfg['queue_dir']}/results/{task_id_for(gid)}/report.md`。マージ・デプロイはしていません。"
                       "_"]

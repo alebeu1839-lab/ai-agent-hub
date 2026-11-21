@@ -367,3 +367,12 @@ class ClaudeMcpClientCallParsing(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class NoOwnerActionTest(unittest.TestCase):
+    def test_none_with_trailing_text_counts_as_no_action(self):
+        from hub.addness_intake import _no_owner_action
+        for text in ("None. Committing, writing back is the runner's job.", "none", "なし。", "-"):
+            self.assertTrue(_no_owner_action(text), text)
+        for text in ("Nonexistent branch must be created", "Please log in to Codex", ""):
+            self.assertFalse(_no_owner_action(text), text)
