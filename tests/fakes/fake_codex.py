@@ -25,7 +25,11 @@ if mode == "usage_limit":
 if mode == "auth":
     print("Error: Not logged in. Run `codex login`.", file=sys.stderr); sys.exit(1)
 import time; time.sleep(int(os.environ.get("FAKE_CODEX_SLEEP", "0")))
-prompt = args[-1]
+prompt = sys.stdin.read() if args[-1] == "-" else args[-1]
+prompt_path = os.environ.get("FAKE_CODEX_PROMPT_PATH")
+if prompt_path:
+    with open(prompt_path, "w", encoding="utf-8") as f:
+        f.write(prompt)
 if sandbox == "workspace-write":
     with open(os.path.join(cd, "CODEX_WAS_HERE.md"), "w") as f:
         f.write("# Written by fake Codex\n\n" + prompt.splitlines()[-1][:200] + "\n")

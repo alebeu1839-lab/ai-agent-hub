@@ -9,10 +9,12 @@ import os
 import subprocess
 import tempfile
 import unittest
+from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from hub import config as hubconfig
+from hub import codex_mcp_bridge
 from hub.codex_mcp_bridge import handle
 from hub.redact import redact
 from hub.runner import Runner
@@ -265,6 +267,28 @@ class RunnerE2E(unittest.TestCase):
 
 
 class Units(unittest.TestCase):
+    def test_bridge_passes_multiline_prompt_on_stdin(self):
+        with tempfile.TemporaryDirectory() as td:
+            workspace = Path(td)
+            prompt_path = workspace / "prompt.txt"
+            env = {
+                "CODEX_BIN": str(FAKES / "fake_codex.py"),
+                "CODEX_BRIDGE_WORKSPACE": str(workspace),
+                "CODEX_BRIDGE_MAX_SANDBOX": "workspace-write",
+                "FAKE_CODEX_PROMPT_PATH": str(prompt_path),
+            }
+            old_preflight = codex_mcp_bridge._PREFLIGHT
+            codex_mcp_bridge._PREFLIGHT = None
+            try:
+                with patch.dict(os.environ, env, clear=False):
+                    _, is_error = codex_mcp_bridge.run_codex(
+                        "codex_implement", {"instructions": "line1\nline2 SECRET_MARKER"})
+                self.assertFalse(is_error)
+                received = prompt_path.read_text(encoding="utf-8")
+                self.assertIn("line1\nline2 SECRET_MARKER", received)
+            finally:
+                codex_mcp_bridge._PREFLIGHT = old_preflight
+
     def test_redact(self):
         s = "token ghp_" + "a" * 36 + " key sk-ant-abcdefghijklmnop password=hunter22 https://u:p@host/x"
         out = redact(s)

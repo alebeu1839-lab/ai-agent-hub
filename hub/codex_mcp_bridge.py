@@ -164,10 +164,10 @@ def run_codex(tool: str, args: dict) -> tuple[str, bool]:
         model = os.environ.get("CODEX_BRIDGE_MODEL")
         if model:
             cmd += ["--model", model]
-        cmd.append(prompt)
+        cmd.append("-")
         started = time.time()
         try:
-            proc = subprocess.run(cmd, cwd=ws, stdin=subprocess.DEVNULL, capture_output=True, env=subscription_env(),
+            proc = subprocess.run(cmd, cwd=ws, input=prompt, capture_output=True, env=subscription_env(),
                                   text=True, encoding="utf-8", errors="replace", timeout=timeout)
             rc, out, err = proc.returncode, proc.stdout, proc.stderr
         except FileNotFoundError:
