@@ -62,3 +62,45 @@ Manual steps:
 ## Tests
 `python -m unittest discover -s tests -t .` — end-to-end against local bare git repos with fake
 `claude`/`codex` binaries (the fake Claude still drives the real MCP bridge).
+
+## Register the codex MCP bridge with Claude Code on Windows
+
+Codex CLI 0.170 and later do not include the `codex mcp-server` subcommand. Use the
+`hub/codex_mcp_bridge.py` bridge as the MCP server instead; it wraps `codex exec` and applies
+the workspace, sandbox, timeout, and logging settings below.
+
+Do not use the `python.exe` under `C:\Users\<user>\AppData\Local\Microsoft\WindowsApps`.
+That is the Microsoft Store app-execution alias, not a usable Python installation for this
+bridge. Install Python 3.10 or later from python.org or with winget, for example:
+
+```powershell
+winget install Python.Python.3.12
+```
+
+Use the installed interpreter's full path, such as
+`C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe`.
+
+From PowerShell, register the bridge with `claude mcp add codex -s local`. Replace the example
+paths with the actual repository and task workspace paths. `CODEX_BRIDGE_WORKSPACE` is the
+directory where Codex runs; `CODEX_BRIDGE_MAX_SANDBOX` caps the bridge's tools at `read-only`
+or `workspace-write`; `CODEX_BRIDGE_LOG` is the JSONL call log; `CODEX_BRIDGE_TIMEOUT` is the
+per-call timeout in seconds; and `CODEX_BIN` identifies the Codex CLI executable (Windows
+installations commonly resolve it as `codex.cmd`). Ensure the log's parent directory exists.
+
+```powershell
+claude mcp add codex -s local `
+  -e "CODEX_BRIDGE_WORKSPACE=C:\path\to\task-worktree" `
+  -e "CODEX_BRIDGE_MAX_SANDBOX=workspace-write" `
+  -e "CODEX_BRIDGE_LOG=C:\path\to\ai-agent-hub\state\codex_calls.jsonl" `
+  -e "CODEX_BRIDGE_TIMEOUT=1200" `
+  -e "CODEX_BIN=codex.cmd" `
+  -- "C:\Users\<user>\AppData\Local\Programs\Python\Python312\python.exe" `
+     "C:\path\to\ai-agent-hub\hub\codex_mcp_bridge.py"
+```
+
+When Claude Code is started from the Codex app, it inherits
+`CODEX_WINDOWS_REGISTERED_CORE=1`. The npm-installed Codex CLI then cannot prepare its
+sandbox. The bridge removes this variable from the environment passed to its Codex child
+processes so `codex exec` can provision the sandbox normally.
+
+Finally, run `claude mcp list` and confirm that `codex` is shown as **Connected**.
