@@ -1,7 +1,7 @@
 # AI Agent Hub — 共有進捗・引き継ぎ台帳
 
-最終記録: 2026-11-20 JST
-状態: **構成とGitHub保存先は確認済み／エンドツーエンド稼働は未検証**
+最終記録: 2026-11-21 JST
+状態: **Addness→PC自動受信→Claude Code→Codex→レビュー→Addness書き戻しの無人一周を実機で確認済み（練習タスク）。GPT経由の実案件1件は未確認**
 このファイルはGPT・Claude Code・Codexが最初に読む共有入口。実行結果で裏付けられない「完成」は記載しない。
 
 ## 目的と構成
@@ -51,3 +51,20 @@
   4. 実行中タスクへの `[ai-agent-hub:stop]` は次の受信を止めるだけで、実行中の処理は止めない（止めるには PAUSE）。
   5. 他PCがclaimしたまま止まったタスクは自動で引き継がない（安全側）。手動でclaimコメントを消すか再登録。
 - **次に何をする**: 本人がPCで `docs/ADDNESS-INTAKE.md` の「PCへの導入」を実施 → 練習タスク fe511787 で1回手動サイクル → 結果を確認後に自動化を承認。
+
+## 2026-11-21 最新状況（Claude Code デスクトップ、Windows PC `windows-main`）
+
+確認済み:
+- 受信処理 `hub/addness_intake.py` を受信担当にした（旧 `dispatch.ps1` は未使用）。作業ツリー: `C:\Users\saisa\Documents\Codex\2026-11-20\ai-agent-hub-intake`。
+- タスクスケジューラ `AIAgentHubAddnessIntake`（5分ごと、本人ユーザー、ログイン中のみ、StartWhenAvailable）。停止は無効化か `state\PAUSE`。
+- 拾う条件: タイトル【Claude Code PC】・本人担当・本文かコメントに「実行指示」・親「AI社員運用基盤を作る」配下・除外ID以外。
+- 実機の証跡: 練習3 Addness `c1ff3edc`（手動起動、Codex実装、PASS、コミット `5769b40`、2回目は idle）、練習4 Addness `110a44bc`（スケジューラだけで起動、Codex実装2回＋レビュー、PASS、コミット `06dbabc`）。
+- 直した不具合: `4a8331f` Addness用 `claude -p` の答えが `<<<JSON…JSON>>>` 無しでも読む。`277528e` Codexへの指示を標準入力（`codex exec -`）で渡す（Windowsの codex.cmd は引数を改行で切る）。テスト51件OK。
+- 自動復旧（テストあり）: claim直後の異常終了→1回だけ再投入、Addness認証切れ→停止して再ログイン後に再開、多重起動ロック、PAUSE、実行中断→`--resume`で再開。
+
+未確認・注意:
+- GPTがスマホからの依頼で登録した実案件1件の無人処理。
+- PC本体の再起動後の継続（設計上はStartWhenAvailableで再開）。
+- `gh` が無いため `security.verify_submitter=false`。
+- キューに旧リポジトリ名の古いタスク `20261119-windows-01` が残る（毎回拒否されるだけ）。
+
