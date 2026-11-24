@@ -1,6 +1,8 @@
 # Addness intake status
 
-- **status:** error: addness
+- **status:** blocked: addness auth
 - **runner:** `windows-myaddness`
-- **updated:** 2026-11-24T18:20:37Z
-- **detail:** bad Addness answer (exit 1): true,"num_turns":1,"subtype":"success","api_error_status":429,"api_error_type":"rate_limit_error","api_error_origin":"first_party","api_error":"usage_limit_reached","result":"You've hit your 5-hour limit · resets 4am (Etc/GMT-9)","type":"result","duration_ms":971,"uuid":"dcd37f04-c170-47eb-9c03-98cb5adc7d34","queued_turn_count":0,"result_index":0,"credential_expires_at":"2026-12-13T11:48:44.642Z"}
+- **updated:** 2026-11-24T19:11:28Z
+- **detail:** al is not completed, so I set \"status\" to \"NONE\" because the requested schema only allows DONE or NONE. The goal has no comments.","ttft_ms":3913,"type":"result","duration_ms":21155,"uuid":"f006740c-739e-4011-abf5-9458df362f6c","ttft_stream_ms":2998,"time_to_request_ms":1318,"first_content_frame_ms":2999,"queued_turn_count":0,"result_index":0,"credential_expires_at":"2026-12-13T11:48:44.642Z"}
+
+**Owner action needed:** re-authenticate the Addness MCP connection in Claude Code on the runner PC (`claude` → `/mcp` → addness → authenticate). The runner keeps polling and resumes automatically.
