@@ -1,6 +1,6 @@
 # Addness intake status
 
-- **status:** error: addness
+- **status:** ok
 - **runner:** `windows-main`
-- **updated:** 2026-11-24T13:13:09Z
-- **detail:** bad Addness answer (exit 1): rue,"num_turns":1,"subtype":"success","api_error_status":429,"api_error_type":"rate_limit_error","api_error_origin":"first_party","api_error":"usage_limit_reached","result":"You've hit your 5-hour limit · resets 11pm (Etc/GMT-9)","type":"result","duration_ms":985,"uuid":"4932ed60-8965-4af8-83f8-7cd14c6fd548","queued_turn_count":0,"result_index":0,"credential_expires_at":"2026-12-13T11:48:44.642Z"}
+- **updated:** 2026-11-24T14:11:00Z
+- **detail:** intake=[] writeback=[]
