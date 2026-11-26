@@ -1,6 +1,6 @@
 # Addness intake status
 
-- **status:** ok
+- **status:** cooldown: Claude usage limit
 - **runner:** `windows-myaddness`
-- **updated:** 2026-11-26T01:10:16Z
-- **detail:** intake=[] writeback=[]
+- **updated:** 2026-11-26T01:47:35Z
+- **detail:** Claude subscription limit; resume at 2026-11-26T06:00:00Z
